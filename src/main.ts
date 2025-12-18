@@ -37,7 +37,7 @@ async function bootstrap() {
 
   // Swagger setup
   const config = new DocumentBuilder()
-    .setTitle('CozyFocus API')
+    .setTitle('ecom_rmk_be API')
     .setDescription('API documentation for CozyFocus backend')
     .setVersion('1.0')
     .addTag('users', 'User management endpoints')

@@ -1,98 +1,148 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# E-Commerce Remake Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A NestJS backend application with MongoDB (Prisma) for e-commerce platform.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 📋 Prerequisites
 
-## Description
+- Docker & Docker Compose
+- Git
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🚀 Quick Start with Docker
 
-## Project setup
+### 1. Clone the repository
 
 ```bash
-$ yarn install
+git clone <your-repo-url>
+cd ecom_rmk_be
 ```
 
-## Compile and run the project
+### 2. Setup environment variables
 
 ```bash
-# development
-$ yarn run start
+cp .env.example .env
+```
 
-# watch mode
-$ yarn run start:dev
+Edit `.env` file and configure your environment variables if needed (default values work for development).
+
+### 3. Start the application
+
+```bash
+docker-compose -f docker-compose.dev.yml up --build -d
+```
+
+This command will:
+- Build the Docker images
+- Start MongoDB container
+- Start NestJS application with hot-reload enabled
+- Run Prisma generate automatically
+
+### 4. Sync Prisma schema with database (if schema changed)
+
+After containers are running, sync your Prisma schema:
+
+```bash
+docker-compose -f docker-compose.dev.yml exec nestjs-app npx prisma db push && npx prisma generate
+```
+
+### 5. Access the application
+
+- **API**: http://localhost:3000
+- **Swagger Docs**: http://localhost:3000/api
+- **Health Check**: http://localhost:3000/health
+
+## 🏗️ Local Development (without Docker)
+
+If you prefer to run locally without Docker:
+
+### 1. Install dependencies
+
+```bash
+yarn install
+```
+
+### 2. Setup environment
+
+```bash
+cp .env.example .env
+```
+
+Update `DATABASE_URL` in `.env` to point to your local MongoDB instance.
+
+### 3. Sync database
+
+```bash
+npx prisma db push
+```
+
+### 4. Generate Prisma Client
+
+```bash
+npx prisma generate
+```
+
+### 5. Run the application
+
+```bash
+# development with watch mode
+yarn start:dev
 
 # production mode
-$ yarn run start:prod
+yarn start:prod
 ```
 
-## Run tests
+## 📦 Production Deployment
+
+### Using Docker (Recommended)
 
 ```bash
-# unit tests
-$ yarn run test
-
-# e2e tests
-$ yarn run test:e2e
-
-# test coverage
-$ yarn run test:cov
+docker-compose -f docker-compose.prod.yml up --build -d
 ```
 
-## Deployment
+**Important:** For production, configure your `.env` file with:
+- MongoDB Atlas connection string
+- Production PORT
+- Other production environment variables
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Example production DATABASE_URL:
+```env
+DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/dbname?retryWrites=true&w=majority
+```
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## 📚 Technologies
 
+- **Framework**: NestJS
+- **Database**: MongoDB with Prisma ORM
+- **API Documentation**: Swagger/OpenAPI
+- **Validation**: class-validator, class-transformer
+- **Runtime**: Node.js 24 (Alpine)
+
+## 📝 Common Issues
+
+### Container fails to start
+
+1. Check if ports are already in use:
 ```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
+lsof -i :3000
+lsof -i :27017
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+2. Remove old containers and volumes:
+```bash
+docker-compose -f docker-compose.dev.yml down -v
+docker-compose -f docker-compose.dev.yml up --build -d
+```
 
-## Resources
+### Prisma schema changes not reflecting
 
-Check out a few resources that may come in handy when working with NestJS:
+Run db push and generate after modifying `prisma/schema.prisma`:
+```bash
+docker-compose -f docker-compose.dev.yml exec nestjs-app npx prisma db push && npx prisma generate
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### Hot reload not working
 
-## Support
+Make sure your `src/` directory is properly mounted. Check `docker-compose.dev.yml` volumes configuration.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## 📄 License
 
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+This project is [MIT licensed](LICENSE).

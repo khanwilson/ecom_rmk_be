@@ -1,0 +1,32 @@
+# ===================================
+# Development Dockerfile
+# Optimized for hot reload and fast development
+# ===================================
+FROM node:24-alpine
+WORKDIR /usr/src/app
+
+# Copy package files
+COPY package.json yarn.lock ./
+
+# Install ALL dependencies (including devDependencies)
+RUN yarn install --frozen-lockfile
+
+# Copy config files
+COPY tsconfig*.json ./
+COPY nest-cli.json ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Expose port
+ARG PORT=3000
+ENV PORT=${PORT}
+EXPOSE ${PORT}
+
+# Note: Source code (src/) will be mounted via volume in docker-compose
+# to enable hot reload when code changes
+
+# Run development mode with hot reload
+CMD ["yarn", "start:dev"]

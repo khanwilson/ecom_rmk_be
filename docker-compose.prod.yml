@@ -1,0 +1,13 @@
+services:
+  nestjs-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    env_file:
+      - .env
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      - DATABASE_URL=mongodb+srv://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}/${DB_APP_NAME}?authSource=admin
+    restart: unless-stopped
+

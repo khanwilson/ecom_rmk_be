@@ -1,11 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { HttpException, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { HttpExceptionInterceptor } from './common/interceptors/http-exception.interceptor';
 
 async function bootstrap() {
+  // Create hybrid application (HTTP + Kafka Microservice)
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
@@ -40,6 +42,7 @@ async function bootstrap() {
     .setTitle('ecom_rmk_be API')
     .setDescription('API documentation for CozyFocus backend')
     .setVersion('1.0')
+    .addTag('kafka', 'Kafka messaging endpoints')
     .addTag('users', 'User management endpoints')
     .addTag('subscriptions', 'Subscription management endpoints')
     .addTag('transactions', 'Transaction management endpoints')
@@ -47,9 +50,31 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
+  // Connect Kafka Microservice
+  const kafkaBroker = configService.get('KAFKA_BROKER', 'kafka:9092');
+  console.log('🔍 DEBUG: KAFKA_BROKER =', kafkaBroker); // Debug log
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.KAFKA,
+    options: {
+      client: {
+        clientId: 'ecom-rmk-consumer',
+        brokers: [kafkaBroker],
+      },
+      consumer: {
+        groupId: 'ecom-rmk-consumer-group',
+      },
+    },
+  });
+
+  // Start all microservices
+  await app.startAllMicroservices();
+  console.log('✅ Kafka Microservice started');
+
+  // Start HTTP server
   const port = configService.get('PORT') || 3000;
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
-  console.log(`Swagger documentation: http://localhost:${port}/api`);
+  console.log(`✅ HTTP Server running on: http://localhost:${port}`);
+  console.log(`📚 Swagger documentation: http://localhost:${port}/api`);
+  console.log(`📨 Kafka broker: ${kafkaBroker}`);
 }
 bootstrap();

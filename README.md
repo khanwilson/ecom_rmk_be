@@ -33,7 +33,8 @@ docker-compose -f docker-compose.dev.yml up --build -d
 This command will:
 - Build the Docker images
 - Start MongoDB container
-- Start NestJS application with hot-reload enabled
+- Start Kafka container (KRaft mode - no Zookeeper needed)
+- Start NestJS hybrid application (HTTP + Kafka microservice) with hot-reload enabled
 - Run Prisma generate automatically
 
 ### 4. Sync Prisma schema with database (if schema changed)
@@ -49,6 +50,8 @@ docker-compose -f docker-compose.dev.yml exec nestjs-app npx prisma db push && n
 - **API**: http://localhost:3000
 - **Swagger Docs**: http://localhost:3000/api
 - **Health Check**: http://localhost:3000/health
+- **Kafka Broker**: kafka:9092 (from containers) / localhost:9092 (from host)
+- **Kafka Health**: http://localhost:3000/kafka/health
 
 ## 🏗️ Local Development (without Docker)
 
@@ -110,8 +113,10 @@ DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/dbname?retryWri
 
 ## 📚 Technologies
 
-- **Framework**: NestJS
+- **Framework**: NestJS with Microservices
 - **Database**: MongoDB with Prisma ORM
+- **Message Broker**: Apache Kafka 3.7+ (KRaft mode - no Zookeeper)
+- **Kafka Client**: NestJS Microservices with KafkaJS
 - **API Documentation**: Swagger/OpenAPI
 - **Validation**: class-validator, class-transformer
 - **Runtime**: Node.js 24 (Alpine)
@@ -142,6 +147,106 @@ docker-compose -f docker-compose.dev.yml exec nestjs-app npx prisma db push && n
 ### Hot reload not working
 
 Make sure your `src/` directory is properly mounted. Check `docker-compose.dev.yml` volumes configuration.
+
+### Kafka connection issues
+
+1. Check if Kafka is running:
+```bash
+docker-compose -f docker-compose.dev.yml ps kafka
+```
+
+2. View Kafka logs:
+```bash
+docker-compose -f docker-compose.dev.yml logs -f kafka
+```
+
+3. Restart Kafka service:
+```bash
+docker-compose -f docker-compose.dev.yml restart kafka
+```
+
+Note: This setup uses Kafka 3.7+ with KRaft mode (no Zookeeper required).
+
+## 🚀 Using Kafka (NestJS Microservices Pattern)
+
+### Send a test event
+
+```bash
+curl -X POST http://localhost:3000/kafka/send \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "order.created",
+    "message": {"orderId": "123", "total": 99.99}
+  }'
+```
+
+### Producer: Send events from your code
+
+```typescript
+import { Inject, Injectable } from '@nestjs/common';
+import { ClientKafka } from '@nestjs/microservices';
+
+@Injectable()
+export class OrderService {
+  constructor(
+    @Inject('KAFKA_CLIENT') private kafkaClient: ClientKafka,
+  ) {}
+
+  async createOrder(orderData: any) {
+    // Save to database
+    const order = await this.saveOrder(orderData);
+    
+    // Emit event to Kafka
+    this.kafkaClient.emit('order.created', {
+      orderId: order.id,
+      userId: order.userId,
+      total: order.total,
+      timestamp: Date.now(),
+    });
+    
+    return order;
+  }
+}
+```
+
+### Consumer: Handle events with decorators
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { EventPattern, Payload, Ctx, KafkaContext } from '@nestjs/microservices';
+
+@Injectable()
+export class NotificationService {
+  
+  @EventPattern('order.created')
+  async handleOrderCreated(@Payload() data: any, @Ctx() context: KafkaContext) {
+    console.log('New order received:', data);
+    
+    // Send email notification
+    await this.sendOrderConfirmation(data);
+  }
+
+  @EventPattern('user.registered')
+  async handleUserRegistered(@Payload() data: any) {
+    console.log('New user:', data);
+    await this.sendWelcomeEmail(data);
+  }
+}
+```
+
+### Setup: Inject Kafka Client in your module
+
+```typescript
+import { Module } from '@nestjs/common';
+import { KafkaClientModule } from './kafka/kafka-client.module';
+import { OrderService } from './order.service';
+
+@Module({
+  imports: [KafkaClientModule],
+  providers: [OrderService],
+})
+export class OrderModule {}
+```
 
 ## 📄 License
 

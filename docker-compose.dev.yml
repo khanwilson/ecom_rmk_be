@@ -9,11 +9,13 @@ services:
       - "${PORT}:${PORT}"
     depends_on:
       - db
+      - kafka
     volumes:
       - .:/usr/src/app # Mount source code for hot reload
       - nestjs_node_modules:/usr/src/app/node_modules # Anonymous volume to protect container's node_modules
     environment:
       - DATABASE_URL=mongodb://${DB_USERNAME}:${DB_PASSWORD}@db:27017/${DB_APP_NAME}?authSource=admin
+      - KAFKA_BROKER=${KAFKA_BROKER}
 
   db:
     image: mongo:7.0.0
@@ -27,7 +29,40 @@ services:
       - mongo_data:/data/db # Use named volume for data persistence
       - mongo_config:/data/configdb # Use named volume for config persistence
 
+  kafka:
+    image: apache/kafka:3.7.0
+    hostname: kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "9094:9094"  # External listener for host machine
+    environment:
+      # KRaft mode configuration (no Zookeeper needed)
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      # port for kafka 9092 (Docker), 9093 (Controller), 9094 (Mac)
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # KRaft cluster ID (randomly generated, keep consistent)
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+      - kafka_secrets:/etc/kafka/secrets
+      - kafka_config:/mnt/shared/config
+
 volumes:
   mongo_data:
   mongo_config:
   nestjs_node_modules:
+  kafka_data:
+  kafka_secrets:
+  kafka_config:

@@ -34,6 +34,7 @@ This command will:
 - Build the Docker images
 - Start MongoDB container
 - Start Kafka container (KRaft mode - no Zookeeper needed)
+- Start Redis container
 - Start NestJS hybrid application (HTTP + Kafka microservice) with hot-reload enabled
 - Run Prisma generate automatically
 
@@ -50,8 +51,10 @@ docker-compose -f docker-compose.dev.yml exec nestjs-app npx prisma db push && n
 - **API**: http://localhost:3000
 - **Swagger Docs**: http://localhost:3000/api
 - **Health Check**: http://localhost:3000/health
-- **Kafka Broker**: kafka:9092 (from containers) / localhost:9092 (from host)
+- **Kafka Broker**: kafka:9092 (from containers) / localhost:9094 (from host)
 - **Kafka Health**: http://localhost:3000/kafka/health
+- **Redis**: localhost:6379
+- **Redis Health**: http://localhost:3000/redis/health
 
 ## 🏗️ Local Development (without Docker)
 
@@ -115,8 +118,10 @@ DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/dbname?retryWri
 
 - **Framework**: NestJS with Microservices
 - **Database**: MongoDB with Prisma ORM
+- **Cache & Distributed State**: Redis 7 with ioredis (pure client)
 - **Message Broker**: Apache Kafka 3.7+ (KRaft mode - no Zookeeper)
 - **Kafka Client**: NestJS Microservices with KafkaJS
+- **Rate Limiting**: Custom distributed rate limiting with ioredis
 - **API Documentation**: Swagger/OpenAPI
 - **Validation**: class-validator, class-transformer
 - **Runtime**: Node.js 24 (Alpine)

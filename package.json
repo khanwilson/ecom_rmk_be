@@ -17,7 +17,13 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "docker:down": "docker-compose -f docker-compose.dev.yml down",
+    "docker:clean": "docker volume rm ecom_rmk_be_nestjs_node_modules || true",
+    "docker:up": "docker-compose -f docker-compose.dev.yml up -d",
+    "docker:build": "docker-compose -f docker-compose.dev.yml up --build -d",
+    "docker:logs": "docker-compose -f docker-compose.dev.yml logs -f nestjs-app",
+    "docker:build-clean": "yarn docker:down && yarn docker:clean && yarn docker:build"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -29,6 +35,7 @@
     "@prisma/client": "^7.2.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
+    "ioredis": "^5.4.1",
     "kafkajs": "^2.2.4",
     "mongodb": "^7.0.0",
     "prisma": "^7.2.0",

@@ -52,7 +52,6 @@ async function bootstrap() {
 
   // Connect Kafka Microservice
   const kafkaBroker = configService.get('KAFKA_BROKER', 'kafka:9092');
-  console.log('🔍 DEBUG: KAFKA_BROKER =', kafkaBroker); // Debug log
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
     options: {
@@ -68,13 +67,12 @@ async function bootstrap() {
 
   // Start all microservices
   await app.startAllMicroservices();
-  console.log('✅ Kafka Microservice started');
 
   // Start HTTP server
   const port = configService.get('PORT') || 3000;
   await app.listen(port);
+  console.log(`📨 Kafka broker: ${kafkaBroker}`);
   console.log(`✅ HTTP Server running on: http://localhost:${port}`);
   console.log(`📚 Swagger documentation: http://localhost:${port}/api`);
-  console.log(`📨 Kafka broker: ${kafkaBroker}`);
 }
 bootstrap();

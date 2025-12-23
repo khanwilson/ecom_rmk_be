@@ -10,12 +10,15 @@ services:
     depends_on:
       - db
       - kafka
+      - redis
     volumes:
       - .:/usr/src/app # Mount source code for hot reload
       - nestjs_node_modules:/usr/src/app/node_modules # Anonymous volume to protect container's node_modules
     environment:
       - DATABASE_URL=mongodb://${DB_USERNAME}:${DB_PASSWORD}@db:27017/${DB_APP_NAME}?authSource=admin
       - KAFKA_BROKER=${KAFKA_BROKER}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
 
   db:
     image: mongo:7.0.0
@@ -58,6 +61,18 @@ services:
       - kafka_data:/var/lib/kafka/data
       - kafka_secrets:/etc/kafka/secrets
       - kafka_config:/mnt/shared/config
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    hostname: redis
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
 
 volumes:
   mongo_data:
@@ -66,3 +81,4 @@ volumes:
   kafka_data:
   kafka_secrets:
   kafka_config:
+  redis_data:

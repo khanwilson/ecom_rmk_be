@@ -1,12 +1,14 @@
-import { Controller, Post, Body, Get, Inject, OnModuleInit } from '@nestjs/common';
+import { Controller, Post, Body, Get, Inject, OnModuleInit, HttpException, HttpStatus, Ip } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
 import { ClientKafka } from '@nestjs/microservices';
+import { RedisService } from '../redis/redis.service';
 
 @ApiTags('kafka')
 @Controller('kafka')
 export class KafkaController implements OnModuleInit {
   constructor(
     @Inject('KAFKA_CLIENT') private readonly kafkaClient: ClientKafka,
+    private readonly redisService: RedisService,
   ) {}
 
   async onModuleInit() {
@@ -16,7 +18,7 @@ export class KafkaController implements OnModuleInit {
   }
 
   @Post('send')
-  @ApiOperation({ summary: 'Send an event to Kafka topic' })
+  @ApiOperation({ summary: 'Send an event to Kafka topic with rate limiting' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -29,18 +31,40 @@ export class KafkaController implements OnModuleInit {
       },
     },
   })
-  async sendEvent(@Body() body: { topic: string; message: any }) {
+  async sendEvent(
+    @Body() body: { topic: string; message: any },
+    @Ip() ip: string,
+  ) {
     const { topic, message } = body;
+    
+    // Rate limit: Max 10 events per minute per IP
+    const rateLimitKey = `rate:kafka:send:${ip}`;
+    const rateLimit = await this.redisService.checkRateLimit(rateLimitKey, 5, 60);
+
+    if (!rateLimit.allowed) {
+      throw new HttpException(
+        {
+          message: 'Too many Kafka events sent',
+          retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
     
     // Emit event to Kafka (fire and forget)
     this.kafkaClient.emit(topic, message);
     
     console.log(`📤 [Kafka Producer] Event emitted to topic: ${topic}`);
+    console.log(`   Rate limit remaining: ${rateLimit.remaining}`);
     
     return {
       success: true,
       message: `Event sent to topic: ${topic}`,
       timestamp: new Date().toISOString(),
+      rateLimit: {
+        remaining: rateLimit.remaining,
+        resetAt: new Date(rateLimit.resetAt).toISOString(),
+      },
     };
   }
 

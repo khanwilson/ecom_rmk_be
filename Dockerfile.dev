@@ -8,8 +8,10 @@ WORKDIR /usr/src/app
 # Copy package files
 COPY package.json yarn.lock ./
 
-# Install ALL dependencies (including devDependencies)
-RUN yarn install --frozen-lockfile
+# Install ALL dependencies (including devDependencies) and clean caches to shrink image
+RUN yarn install --frozen-lockfile \
+  && yarn cache clean \
+  && rm -rf /root/.cache /usr/local/share/.cache
 
 # Copy config files
 COPY tsconfig*.json ./

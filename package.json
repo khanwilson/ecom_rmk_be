@@ -18,12 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "docker:down": "docker-compose -f docker-compose.dev.yml down",
-    "docker:clean": "docker volume rm ecom_rmk_be_nestjs_node_modules || true",
-    "docker:up": "docker-compose -f docker-compose.dev.yml up -d",
-    "docker:build": "docker-compose -f docker-compose.dev.yml up --build -d",
     "docker:logs": "docker-compose -f docker-compose.dev.yml logs -f nestjs-app",
-    "docker:build-clean": "yarn docker:down && yarn docker:clean && yarn docker:build"
+    "docker:build": "docker-compose -f docker-compose.dev.yml down && docker volume rm ecom_rmk_be_nestjs_node_modules || true && docker-compose -f docker-compose.dev.yml up --build -d"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

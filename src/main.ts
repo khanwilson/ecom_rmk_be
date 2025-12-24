@@ -51,27 +51,29 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   // Connect Kafka Microservice
-  const kafkaBroker = configService.get('KAFKA_BROKER', 'kafka:9092');
+  const kafkaBroker = configService.get('KAFKA_BROKER');
+  const kafkaConfig = {
+    client: {
+      clientId: 'ecom-rmk-consumer-server',
+      brokers: [kafkaBroker],
+    },
+    consumer: {
+      groupId: 'ecom-rmk-consumer-group',
+      allowAutoTopicCreation: true,
+    },
+  };
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
-    options: {
-      client: {
-        clientId: 'ecom-rmk-consumer',
-        brokers: [kafkaBroker],
-      },
-      consumer: {
-        groupId: 'ecom-rmk-consumer-group',
-      },
-    },
+    options: kafkaConfig,
   });
 
   // Start all microservices
+  console.log(`🚀 Services starting...`);
   await app.startAllMicroservices();
 
   // Start HTTP server
   const port = configService.get('PORT') || 3000;
   await app.listen(port);
-  console.log(`📨 Kafka broker: ${kafkaBroker}`);
   console.log(`✅ HTTP Server running on: http://localhost:${port}`);
   console.log(`📚 Swagger documentation: http://localhost:${port}/api`);
 }

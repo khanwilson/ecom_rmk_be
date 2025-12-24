@@ -1,35 +1,66 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import Redis, { Cluster } from 'ioredis';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
-  private redis: Redis;
+  private redis: Redis | Cluster;
 
   constructor(private configService: ConfigService) {
-    const host = this.configService.get('REDIS_HOST', 'localhost');
-    const port = this.configService.get('REDIS_PORT', 6379);
+    const clusterNodesEnv = this.configService.get<string>('REDIS_CLUSTER_NODES');
 
-    this.redis = new Redis({
-      host,
-      port,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-    });
+    const retryStrategy = (times: number) => {
+      const delay = Math.min(times * 50, 2000);
+      return delay;
+    };
+
+    // setup cluster mode
+    if (clusterNodesEnv) {
+      const nodes = clusterNodesEnv
+        .split(',')
+        .map((node) => node.trim())
+        .filter((node) => !!node)
+        .map((node) => {
+          const [host, port] = node.split(':');
+          return { host, port: Number(port) || 6379 };
+        });
+
+      this.redis = new Cluster(nodes, {
+        redisOptions: {
+          connectTimeout: 10000,
+        },
+        clusterRetryStrategy: retryStrategy,
+        enableReadyCheck: true,
+      });
+    } else {
+      // setup single node mode
+      const host = this.configService.get('REDIS_HOST', 'localhost');
+      const port = this.configService.get('REDIS_PORT', 6379);
+
+      this.redis = new Redis({
+        host,
+        port,
+        retryStrategy,
+      });
+    }
 
     this.redis.on('connect', () => {
-      console.log('✅ Redis connected');
+      console.log('📡 Redis connected');
     });
-
+  
     this.redis.on('error', (err) => {
       console.error('❌ Redis error:', err);
     });
   }
 
   async onModuleInit() {
-    await this.redis.ping();
+    try {
+      await this.redis.ping(() => {
+        console.log('📡 Redis Ping Success');
+      });
+    } catch (error) {
+      console.warn('⚠️ Redis is not ready yet, but will retry in background...');
+    }
   }
 
   async onModuleDestroy() {
@@ -262,7 +293,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   /**
    * Get raw ioredis client for advanced operations
    */
-  getClient(): Redis {
+  getClient(): Redis | Cluster {
     return this.redis;
   }
 }

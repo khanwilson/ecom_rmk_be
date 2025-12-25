@@ -12,14 +12,18 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
+    "start:service-identity": "ts-node -r tsconfig-paths/register src/services/identity/main.ts",
+    "prisma:generate-identity": "cd src/services/identity && prisma generate --config=prisma/prisma.config.ts",
+    "prisma:generate": "prisma generate",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "docker:logs": "docker-compose -f docker-compose.dev.yml logs -f nestjs-app",
-    "docker:build": "docker-compose -f docker-compose.dev.yml down && docker volume rm ecom_rmk_be_nestjs_node_modules || true && docker-compose -f docker-compose.dev.yml up --build -d"
+    "docker:logs": "docker-compose --env-file .env.dev -f docker-compose.dev.yml logs -f",
+    "docker:logs:identity": "docker-compose --env-file .env.dev -f docker-compose.dev.yml logs -f identity-service",
+    "docker:build": "docker-compose --env-file .env.dev -f docker-compose.dev.yml down && docker-compose --env-file .env.dev -f docker-compose.dev.yml up --build -d"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

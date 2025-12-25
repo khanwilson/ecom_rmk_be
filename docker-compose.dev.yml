@@ -1,40 +1,15 @@
 services:
-  app-nestjs:
+  root-deps:
     build:
       context: .
-      dockerfile: Dockerfile.dev
-    env_file:
-      - .env
-    ports:
-      - "${PORT}:${PORT}"
-    command: node --trace-warnings dist/src/main.js
-    depends_on:
-      db:
-        condition: service_started
-      kafka:
-        condition: service_healthy
-      redis-node-1:
-        condition: service_healthy
-      redis-node-2:
-        condition: service_started
-      redis-node-3:
-        condition: service_started
-      redis-node-4:
-        condition: service_started
-      redis-node-5:
-        condition: service_started
-      redis-node-6:
-        condition: service_started
-      redis-cluster-init:
-        condition: service_started
+      dockerfile: Dockerfile
+    container_name: root-deps
     volumes:
-      - .:/usr/src/app # Mount source code for hot reload
-      - nestjs_node_modules:/usr/src/app/node_modules # Anonymous volume to protect container's node_modules
-    environment:
-      # - TZ=Asia/Ho_Chi_Minh
-      - DATABASE_URL=mongodb://${DB_USERNAME}:${DB_PASSWORD}@db:27017/${DB_APP_NAME}?authSource=admin
-      - KAFKA_BROKER=${KAFKA_BROKER}
-      - REDIS_CLUSTER_NODES=${REDIS_CLUSTER_NODES}
+      - .:/usr/src
+      - root_node_modules:/usr/src/node_modules
+    restart: "no"
+    # Container will install dependencies and exit
+    # Dependencies will persist in root_node_modules volume
 
   db:
     image: mongo:7.0.0
@@ -178,10 +153,47 @@ services:
       - redis_cluster_data:/data
     restart: "no"
 
+  identity-service:
+    build:
+      context: ./src/services/identity
+      dockerfile: Dockerfile.dev
+      args:
+        - DB_URI=${DB_URI}
+    container_name: identity-service
+    env_file:
+      - .env.dev
+      - src/services/identity/.env.dev
+    ports:
+      - "${IDENTITY_PORT:-3100}:${IDENTITY_PORT:-3100}"
+    depends_on:
+      root-deps:
+        condition: service_started
+      db:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+      redis-node-1:
+        condition: service_healthy
+      redis-cluster-init:
+        condition: service_started
+    volumes:
+      - ./src/services/identity:/usr/src/services/identity
+      - ./src/libs:/usr/src/libs
+      - identity_node_modules:/usr/src/services/identity/node_modules # add service dependencies to service
+      - root_node_modules:/usr/src/node_modules # add root dependencies to service
+    environment:
+      - NODE_ENV=dev
+      - DB_URI=${DB_URI}
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - REDIS_CLUSTER_NODES=${REDIS_CLUSTER_NODES}
+      - IDENTITY_PORT=${IDENTITY_PORT:-3100}
+      - NODE_PATH=/usr/src/node_modules:/usr/src/services/identity/node_modules # add root dependencies to service
+    command: yarn start:dev
+
 volumes:
+  root_node_modules:
   mongo_data:
   mongo_config:
-  nestjs_node_modules:
   kafka_data:
   kafka_secrets:
   kafka_config:
@@ -192,3 +204,4 @@ volumes:
   redis5_data:
   redis6_data:
   redis_cluster_data:
+  identity_node_modules:

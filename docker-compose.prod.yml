@@ -1,35 +1,14 @@
 services:
-  app-nestjs:
+  root-deps:
     build:
       context: .
-      dockerfile: Dockerfile.prod
-    env_file:
-      - .env
-    ports:
-      - "${PORT}:${PORT}"
-    depends_on:
-      kafka:
-        condition: service_healthy
-      redis-node-1:
-        condition: service_healthy
-      redis-node-2:
-        condition: service_started
-      redis-node-3:
-        condition: service_started
-      redis-node-4:
-        condition: service_started
-      redis-node-5:
-        condition: service_started
-      redis-node-6:
-        condition: service_started
-      redis-cluster-init:
-        condition: service_started
-    environment:
-      # - TZ=Etc/UTC
-      - DATABASE_URL=mongodb+srv://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}/${DB_APP_NAME}?authSource=admin
-      - KAFKA_BROKER=${KAFKA_BROKER}
-      - REDIS_CLUSTER_NODES=${REDIS_CLUSTER_NODES}
-    restart: unless-stopped
+      dockerfile: Dockerfile
+    container_name: root-deps
+    volumes:
+      - .:/usr/src/app
+      - root_node_modules:/usr/src/app/node_modules
+    command: tail -f /dev/null
+    restart: "no"
 
   kafka:
     image: apache/kafka:3.7.0
@@ -145,7 +124,37 @@ services:
       - redis_cluster_data:/data
     restart: "no"
 
+  identity-service:
+    build:
+      context: ./src/services/identity
+      dockerfile: Dockerfile.prod
+      args:
+        - DB_URI=${DB_URI}
+    container_name: identity-service
+    env_file:
+      - .env.prod
+      - src/services/identity/.env.prod
+    ports:
+      - "${IDENTITY_PORT:-3100}:${IDENTITY_PORT:-3100}"
+    depends_on:
+      root-deps:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+      redis-node-1:
+        condition: service_healthy
+      redis-cluster-init:
+        condition: service_started
+    environment:
+      - NODE_ENV=prod
+      - DB_URI=${DB_URI}
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - REDIS_CLUSTER_NODES=${REDIS_CLUSTER_NODES}
+      - IDENTITY_PORT=${IDENTITY_PORT:-3100}
+    restart: unless-stopped
+
 volumes:
+  root_node_modules:
   kafka_data:
   kafka_secrets:
   kafka_config:

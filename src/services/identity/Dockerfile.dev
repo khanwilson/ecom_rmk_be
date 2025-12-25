@@ -1,0 +1,21 @@
+# Development Dockerfile for Identity Service
+FROM node:24-alpine
+WORKDIR /usr/src/services/identity
+
+# Copy package files
+COPY package.json yarn.lock* ./
+
+# Install ALL dependencies (including devDependencies)
+RUN yarn install --frozen-lockfile \
+  && yarn cache clean
+
+# Copy Prisma schema and config (prisma.config.ts is inside prisma/ directory)
+COPY prisma ./prisma
+
+# Generate Prisma Client (using ARG passed from docker-compose)
+ARG DB_URI
+ENV DB_URI=${DB_URI}
+RUN npx prisma generate --config=prisma/prisma.config.ts
+
+# Run development mode with hot reload
+CMD ["yarn", "start:dev"]

@@ -8,18 +8,24 @@ dist
 generated
 *.tsbuildinfo
 
-# Environment & secrets
+# Environment & secrets (CRITICAL: Must not be in production image)
 .env
 .env.*
+.env.dev
+.env.prod
 .env.local
 .env*.local
+env.dev.md
+env.prod.md
 
 # Git
 .git
 .gitignore
 
-# Docker
+# Docker files (not needed in container)
 Dockerfile
+Dockerfile.dev
+Dockerfile.prod
 .dockerignore
 docker-compose*.yml
 

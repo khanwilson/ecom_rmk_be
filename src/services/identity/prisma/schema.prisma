@@ -1,0 +1,71 @@
+// Prisma schema for Identity service
+// Each service has its own Prisma schema and generated client
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+}
+
+enum IdentityStatus {
+  AVAILABLE
+  LOCKED
+  BANNED
+  DELETED
+  PENDING
+  NAN
+}
+
+enum OtpType {
+  EMAIL_VERIFY
+  RESET_PWD
+  LOGIN_2FA
+}
+
+model Identity {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  email             String?   @unique
+  phone             String?   @unique
+  passwordHash      String
+  refreshTokenHash  String?
+  status            IdentityStatus @default(PENDING)
+  emailVerified     Boolean   @default(false)
+  lastLogin         DateTime?
+  failedLoginCount  Int       @default(0)
+  lastFailedLoginAt DateTime?
+  provider          String    @default("local")
+  metadata          Json?
+  deletedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  otps              Otp[]
+
+  @@index([status])
+  @@index([lastLogin])
+  @@map("identities")
+}
+
+model Otp {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  identityId  String   @db.ObjectId
+  code        String   // Hashed OTP code
+  type        OtpType
+  expiredAt   DateTime
+  consumedAt  DateTime?
+  retryCount  Int      @default(0)
+  sentCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  identity    Identity @relation(fields: [identityId], references: [id], onDelete: Cascade)
+
+  @@index([identityId, type])
+  @@index([expiredAt])
+  @@map("otps")
+}
+

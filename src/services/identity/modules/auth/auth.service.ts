@@ -7,7 +7,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from 'libs/redis';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -15,8 +14,8 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { OtpService } from '../otp/otp.service';
 import { JwtPayload } from './strategies/jwt.strategy';
-import { IdentityStatus } from 'services/identity/generated/prisma';
-
+import { prisma } from 'prisma/prisma';
+import { IdentityStatus } from 'generated/prisma/enums';
 @Injectable()
 export class AuthService {
   private readonly saltRounds: number;
@@ -26,7 +25,6 @@ export class AuthService {
   private readonly jwtRefreshSecret: string;
 
   constructor(
-    private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
@@ -47,7 +45,7 @@ export class AuthService {
     }
 
     // Check if identity already exists
-    const existing = await this.prisma.identity.findFirst({
+    const existing = await prisma.identity.findFirst({
       where: {
         OR: [
           ...(email ? [{ email }] : []),
@@ -64,7 +62,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(password, this.saltRounds);
 
     // Create identity
-    const identity = await this.prisma.identity.create({
+    const identity = await prisma.identity.create({
       data: {
         email,
         phone,
@@ -99,7 +97,7 @@ export class AuthService {
     const { emailOrPhone, password } = dto;
 
     // Find identity by email or phone
-    const identity = await this.prisma.identity.findFirst({
+    const identity = await prisma.identity.findFirst({
       where: {
         OR: [
           { email: emailOrPhone },
@@ -127,7 +125,7 @@ export class AuthService {
     }
 
     // Reset failed login count on success
-    await this.prisma.identity.update({
+    await prisma.identity.update({
       where: { id: identity.id },
       data: {
         failedLoginCount: 0,
@@ -140,7 +138,7 @@ export class AuthService {
 
     // Store refresh token hash
     const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, this.saltRounds);
-    await this.prisma.identity.update({
+    await prisma.identity.update({
       where: { id: identity.id },
       data: { refreshTokenHash },
     });
@@ -163,7 +161,7 @@ export class AuthService {
         secret: this.jwtRefreshSecret,
       });
 
-      const identity = await this.prisma.identity.findUnique({
+      const identity = await prisma.identity.findUnique({
         where: { id: payload.sub },
       });
 
@@ -182,7 +180,7 @@ export class AuthService {
 
       // Update refresh token hash
       const newRefreshTokenHash = await bcrypt.hash(tokens.refreshToken, this.saltRounds);
-      await this.prisma.identity.update({
+      await prisma.identity.update({
         where: { id: identity.id },
         data: { refreshTokenHash: newRefreshTokenHash },
       });
@@ -195,7 +193,7 @@ export class AuthService {
 
   async logout(identityId: string) {
     // Revoke refresh token by clearing hash
-    await this.prisma.identity.update({
+    await prisma.identity.update({
       where: { id: identityId },
       data: { refreshTokenHash: null },
     });
@@ -204,7 +202,7 @@ export class AuthService {
   async forgotPassword(dto: ForgotPasswordDto) {
     const { emailOrPhone } = dto;
 
-    const identity = await this.prisma.identity.findFirst({
+    const identity = await prisma.identity.findFirst({
       where: {
         OR: [
           { email: emailOrPhone },
@@ -236,13 +234,13 @@ export class AuthService {
 
     // Update password
     const passwordHash = await bcrypt.hash(newPassword, this.saltRounds);
-    await this.prisma.identity.update({
+    await prisma.identity.update({
       where: { id: otpRecord.identityId },
       data: { passwordHash },
     });
 
     // Revoke all refresh tokens
-    await this.prisma.identity.update({
+    await prisma.identity.update({
       where: { id: otpRecord.identityId },
       data: { refreshTokenHash: null },
     });
@@ -252,7 +250,7 @@ export class AuthService {
 
   async deleteAccount(identityId: string) {
     // Soft delete
-    await this.prisma.identity.update({
+    await prisma.identity.update({
       where: { id: identityId },
       data: {
         status: IdentityStatus.DELETED,
@@ -286,7 +284,7 @@ export class AuthService {
   }
 
   private async handleFailedLogin(identityId: string) {
-    const identity = await this.prisma.identity.findUnique({
+    const identity = await prisma.identity.findUnique({
       where: { id: identityId },
     });
 
@@ -295,7 +293,7 @@ export class AuthService {
     const failedCount = identity.failedLoginCount + 1;
     const maxAttempts = 5; // Lock after 5 failed attempts
 
-    await this.prisma.identity.update({
+    await prisma.identity.update({
       where: { id: identityId },
       data: {
         failedLoginCount: failedCount,

@@ -1,13 +1,17 @@
-// Prisma schema for Identity service
-// Each service has its own Prisma schema and generated client
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
   output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "mongodb"
+  url      = env("DB_URI")
 }
 
 enum IdentityStatus {
@@ -26,24 +30,24 @@ enum OtpType {
 }
 
 model Identity {
-  id                String    @id @default(auto()) @map("_id") @db.ObjectId
-  email             String?   @unique
-  phone             String?   @unique
+  id                String         @id @default(auto()) @map("_id") @db.ObjectId
+  email             String?        @unique
+  phone             String?        @unique
   passwordHash      String
   refreshTokenHash  String?
   status            IdentityStatus @default(PENDING)
-  emailVerified     Boolean   @default(false)
+  emailVerified     Boolean        @default(false)
   lastLogin         DateTime?
-  failedLoginCount  Int       @default(0)
+  failedLoginCount  Int            @default(0)
   lastFailedLoginAt DateTime?
-  provider          String    @default("local")
+  provider          String         @default("local")
   metadata          Json?
   deletedAt         DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   // Relations
-  otps              Otp[]
+  otps Otp[]
 
   @@index([status])
   @@index([lastLogin])
@@ -51,21 +55,20 @@ model Identity {
 }
 
 model Otp {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  identityId  String   @db.ObjectId
-  code        String   // Hashed OTP code
-  type        OtpType
-  expiredAt   DateTime
-  consumedAt  DateTime?
-  retryCount  Int      @default(0)
-  sentCount   Int      @default(0)
-  createdAt   DateTime @default(now())
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  identityId String    @db.ObjectId
+  code       String // Hashed OTP code
+  type       OtpType
+  expiredAt  DateTime
+  consumedAt DateTime?
+  retryCount Int       @default(0)
+  sentCount  Int       @default(0)
+  createdAt  DateTime  @default(now())
 
   // Relations
-  identity    Identity @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  identity Identity @relation(fields: [identityId], references: [id], onDelete: Cascade)
 
   @@index([identityId, type])
   @@index([expiredAt])
   @@map("otps")
 }
-

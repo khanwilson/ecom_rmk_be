@@ -3,9 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { RedisService } from 'libs/redis';
 import { MailerService } from 'libs/mailer';
-import { PrismaService } from 'services/identity/prisma/prisma.service';
-import { OtpType } from 'services/identity/generated/prisma';
-
+import { OtpType } from 'generated/prisma/enums';
+import { prisma } from 'prisma/prisma';
 @Injectable()
 export class OtpService {
   private readonly ttlSeconds: number;
@@ -14,7 +13,6 @@ export class OtpService {
   private readonly saltRounds: number;
 
   constructor(
-    private readonly prisma: PrismaService,
     private readonly redisService: RedisService,
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
@@ -58,7 +56,7 @@ export class OtpService {
     const expiredAt = new Date(Date.now() + this.ttlSeconds * 1000);
 
     // Store in database
-    const otpRecord = await this.prisma.otp.create({
+    const otpRecord = await prisma.otp.create({
       data: {
         identityId,
         code: otpHash,
@@ -90,7 +88,7 @@ export class OtpService {
       if (storedCode === otpCode) {
         // Extract OTP ID from key
         const otpId = key.split(':')[1];
-        const otpRecord = await this.prisma.otp.findUnique({
+        const otpRecord = await prisma.otp.findUnique({
           where: { id: otpId },
         });
 
@@ -99,7 +97,7 @@ export class OtpService {
           const isValid = await bcrypt.compare(otpCode, otpRecord.code);
           if (isValid && otpRecord.expiredAt > new Date()) {
             // Mark as consumed
-            await this.prisma.otp.update({
+            await prisma.otp.update({
               where: { id: otpId },
               data: { consumedAt: new Date() },
             });
@@ -114,7 +112,7 @@ export class OtpService {
     }
 
     // Fallback: search in database
-    const otpRecords = await this.prisma.otp.findMany({
+    const otpRecords = await prisma.otp.findMany({
       where: {
         type,
         consumedAt: null,
@@ -127,7 +125,7 @@ export class OtpService {
     for (const record of otpRecords) {
       const isValid = await bcrypt.compare(otpCode, record.code);
       if (isValid) {
-        await this.prisma.otp.update({
+        await prisma.otp.update({
           where: { id: record.id },
           data: { consumedAt: new Date() },
         });

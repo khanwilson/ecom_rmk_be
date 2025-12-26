@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
-import { PrismaModule } from 'services/identity/prisma/prisma.module';
 import { OtpModule } from '../otp/otp.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -11,7 +10,6 @@ import { StringValue } from "ms";
 
 @Module({
   imports: [
-    PrismaModule,
     OtpModule,
     PassportModule,
     JwtModule.registerAsync({

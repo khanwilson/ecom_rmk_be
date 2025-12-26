@@ -1,9 +1,9 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
+import { IdentityStatus } from 'generated/prisma/enums';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { IdentityStatus } from 'services/identity/generated/prisma';
-import { PrismaService } from 'services/identity/prisma/prisma.service';
+import { prisma } from 'prisma/prisma';
 
 export interface JwtPayload {
   sub: string; // identity id
@@ -15,7 +15,6 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private readonly configService: ConfigService,
-    private readonly prisma: PrismaService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -25,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    const identity = await this.prisma.identity.findUnique({
+    const identity = await prisma.identity.findUnique({
       where: { id: payload.sub },
       select: {
         id: true,

@@ -4,6 +4,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { RedisModule } from '@ecom-rmk/libs/redis';
 import { IdentityController } from './identity.controller';
 import { IdentityService } from './identity.service';
+import { AuthModule } from 'modules/auth/auth.module';
+import { OtpModule } from 'modules/otp/otp.module';
 
 @Module({
   imports: [
@@ -11,6 +13,8 @@ import { IdentityService } from './identity.service';
       isGlobal: true,
     }),
     RedisModule,
+    AuthModule,
+    OtpModule,
     ClientsModule.registerAsync([
       {
         name: 'PRODUCT_SERVICE',

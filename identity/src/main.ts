@@ -1,3 +1,4 @@
+import { HttpExceptionInterceptor } from '@ecom-rmk/libs/common';
 import { retryConnectKafkaService } from '@ecom-rmk/libs/utils';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -18,6 +19,9 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // Apply global exception interceptor for consistent error responses
+  app.useGlobalInterceptors(new HttpExceptionInterceptor());
 
   // Setup Swagger
   const config = new DocumentBuilder()
@@ -66,7 +70,7 @@ async function bootstrap() {
     },
   });
 
-  await retryConnectKafkaService(app.startAllMicroservices());
+  await retryConnectKafkaService(app.startAllMicroservices);
 
   const port = process.env.IDENTITY_PORT || 3100;
   await app.listen(port);

@@ -18,10 +18,7 @@ export class OtpController {
     @CurrentIdentity() identity: any,
     @Body('type') type: string,
   ) {
-    if (!identity.email) {
-      throw new Error('Email is required to send OTP');
-    }
-
+    // Note: email is required in schema, so it should always be present
     await this.otpService.sendOtp(identity.id, type as any, identity.email);
     return { message: 'OTP sent successfully' };
   }

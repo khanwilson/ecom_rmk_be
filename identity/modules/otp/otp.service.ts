@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
+import bcrypt from 'bcrypt';
 import { RedisService } from '@ecom-rmk/libs/redis';
 import { OtpType } from 'generated/prisma/enums';
 import { prisma } from 'prisma/prisma';
@@ -18,7 +18,9 @@ export class OtpService {
     this.ttlSeconds = this.configService.get<number>('OTP_TTL_SECONDS', 300);
     this.maxPerWindow = this.configService.get<number>('OTP_MAX_PER_WINDOW', 5);
     this.windowSeconds = this.configService.get<number>('OTP_WINDOW_SECONDS', 3600);
-    this.saltRounds = this.configService.get<number>('BCRYPT_SALT_ROUNDS', 12);
+    // Parse saltRounds to ensure it's a number (env variables are strings by default)
+    const saltRoundsEnv = this.configService.get<string>('BCRYPT_SALT_ROUNDS', '12');
+    this.saltRounds = typeof saltRoundsEnv === 'number' ? saltRoundsEnv : parseInt(saltRoundsEnv, 10) || 12;
   }
 
   /**

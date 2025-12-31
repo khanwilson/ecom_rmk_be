@@ -10,8 +10,8 @@ export class AuthResponseDto {
   @ApiProperty()
   identity: {
     id: string;
-    email?: string;
-    phone?: string;
+    email: string;
+    phone: string;
     status: string;
     emailVerified: boolean;
   };

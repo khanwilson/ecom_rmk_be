@@ -7,8 +7,8 @@ import { prisma } from 'prisma/prisma';
 
 export interface JwtPayload {
   sub: string; // identity id
-  email?: string;
-  phone?: string;
+  email: string;
+  phone: string;
 }
 
 @Injectable()

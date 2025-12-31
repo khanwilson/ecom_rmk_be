@@ -1,9 +1,9 @@
-export async function retryConnectKafkaService(connectRetry: Promise<any>, maxRetries = 5, initialDelay = 2000): Promise<void> {
+export async function retryConnectKafkaService(connectRetry: () => Promise<any>, maxRetries = 5, initialDelay = 2000): Promise<void> {
   let attempt = 1;
 
   while (attempt <= maxRetries) {
     try {
-      await connectRetry;
+      await connectRetry();
       console.log(`✅ Kafka microservice (ServerKafka) started successfully on attempt ${attempt}`);
       return;
     } catch (error: any) {

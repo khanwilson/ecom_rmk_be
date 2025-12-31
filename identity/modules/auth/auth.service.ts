@@ -1,21 +1,21 @@
+import { handlePrismaError } from '@ecom-rmk/libs/common';
+import { RedisService } from '@ecom-rmk/libs/redis';
 import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
   ConflictException,
+  Injectable,
+  UnauthorizedException
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { RedisService } from '@ecom-rmk/libs/redis';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { OtpService } from 'modules/otp/otp.service';
-import { JwtPayload } from './strategies/jwt.strategy';
-import { prisma } from 'prisma/prisma';
+import bcrypt from 'bcrypt';
 import { IdentityStatus } from 'generated/prisma/enums';
+import { OtpService } from 'modules/otp/otp.service';
+import { prisma } from 'prisma/prisma';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { JwtPayload } from './strategies/jwt.strategy';
 
 @Injectable()
 export class AuthService {
@@ -31,7 +31,9 @@ export class AuthService {
     private readonly redisService: RedisService,
     private readonly otpService: OtpService,
   ) {
-    this.saltRounds = this.configService.get<number>('BCRYPT_SALT_ROUNDS', 12);
+    // Parse saltRounds to ensure it's a number (env variables are strings by default)
+    const saltRoundsEnv = this.configService.get<string>('BCRYPT_SALT_ROUNDS', '12');
+    this.saltRounds = typeof saltRoundsEnv === 'number' ? saltRoundsEnv : parseInt(saltRoundsEnv, 10) || 12;
     this.accessTokenExpiresIn = this.configService.get<string>('ACCESS_TOKEN_EXPIRES_IN', '24h');
     this.refreshTokenExpiresIn = this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN', '7d');
     this.jwtAccessSecret = this.configService.getOrThrow<string>('JWT_ACCESS_SECRET');
@@ -41,16 +43,12 @@ export class AuthService {
   async register(dto: RegisterDto) {
     const { email, phone, password } = dto;
 
-    if (!email && !phone) {
-      throw new BadRequestException('Either email or phone is required');
-    }
-
-    // Check if identity already exists
+    // Check if identity already exists (by email or phone)
     const existing = await prisma.identity.findFirst({
       where: {
         OR: [
-          ...(email ? [{ email }] : []),
-          ...(phone ? [{ phone }] : []),
+          { email },
+          { phone },
         ],
       },
     });
@@ -59,38 +57,91 @@ export class AuthService {
       throw new ConflictException('Identity with this email or phone already exists');
     }
 
-    // Hash password
+    // Hash password before transaction
     const passwordHash = await bcrypt.hash(password, this.saltRounds);
 
-    // Create identity
-    const identity = await prisma.identity.create({
-      data: {
-        email,
-        phone,
-        passwordHash,
-        status: IdentityStatus.PENDING, // Will be AVAILABLE after email verification
-      },
-      select: {
-        id: true,
-        email: true,
-        phone: true,
-        status: true,
-        emailVerified: true,
-        createdAt: true,
-      },
-    });
+    // Generate OTP code and hash before transaction
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpHash = await bcrypt.hash(otpCode, this.saltRounds);
+    const ttlSeconds = this.otpService['ttlSeconds'] || 300;
+    const expiredAt = new Date(Date.now() + ttlSeconds * 1000);
 
-    // Send verification OTP if email provided
-    if (email) {
-      await this.otpService.sendOtp(identity.id, 'EMAIL_VERIFY' as any, email);
+    // ATOMIC TRANSACTION: Create Identity + OTP together
+    // If any operation fails, entire transaction is rolled back (All or Nothing)
+    let result;
+    try {
+      result = await prisma.$transaction(
+        async (tx) => {
+          // Step 1: Create Identity
+          const identity = await tx.identity.create({
+            data: {
+              email,
+              phone,
+              passwordHash,
+              status: IdentityStatus.PENDING, // Will be AVAILABLE after email verification
+            },
+            select: {
+              id: true,
+              email: true,
+              phone: true,
+              status: true,
+              emailVerified: true,
+              createdAt: true,
+            },
+          });
+
+          // Step 2: Create OTP (within same transaction)
+          // If this fails, Identity creation above will be rolled back automatically
+          const otpRecord = await tx.otp.create({
+            data: {
+              identityId: identity.id,
+              code: otpHash,
+              type: 'EMAIL_VERIFY',
+              expiredAt,
+              sentCount: 1,
+            },
+          });
+
+          // Both operations succeed or both fail (atomicity guaranteed by Replica Set)
+          return { identity, otpRecord, otpCode };
+        },
+        {
+          maxWait: 5000, // Maximum time to wait for transaction to start
+          timeout: 10000, // Maximum time for transaction to complete
+        },
+      );
+    } catch (error: any) {
+      // Use centralized Prisma error handler for consistent error responses
+      // This ensures all Prisma errors are handled uniformly across the application
+      throw handlePrismaError(
+        error,
+        'An unexpected error occurred during registration',
+      );
+    }
+
+    // After transaction commits successfully, handle Redis operations
+    // These are outside the transaction but only execute if transaction succeeded
+    try {
+      // Store plain OTP code in Redis for quick verification
+      const redisKey = `otp:${result.otpRecord.id}`;
+      await this.redisService.set(redisKey, result.otpCode, ttlSeconds);
+
+      // Increment sent count in Redis
+      await this.redisService.incr(`otp:sent:${result.identity.id}:EMAIL_VERIFY`);
+
+      // TODO: Send email with OTP code
+      // await this.mailerService.sendOtpEmail(email, result.otpCode, 'EMAIL_VERIFY');
+    } catch (error) {
+      // Redis failure doesn't rollback transaction, but we log it
+      console.error('Failed to store OTP in Redis:', error);
     }
 
     // Generate tokens
-    const tokens = await this.generateTokens(identity.id, email, phone);
+    const tokens = await this.generateTokens(result.identity.id, email, phone);
 
     return {
       ...tokens,
-      identity,
+      identity: result.identity,
     };
   }
 
@@ -135,7 +186,8 @@ export class AuthService {
     });
 
     // Generate tokens
-    const tokens = await this.generateTokens(identity.id, identity.email || undefined, identity.phone || undefined);
+    // Note: email and phone are required in schema, so non-null assertion is safe
+    const tokens = await this.generateTokens(identity.id, identity.email!, identity.phone!);
 
     // Store refresh token hash
     const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, this.saltRounds);
@@ -177,7 +229,8 @@ export class AuthService {
       }
 
       // Generate new tokens
-      const tokens = await this.generateTokens(identity.id, identity.email || undefined, identity.phone || undefined);
+      // Note: email and phone are required in schema, so non-null assertion is safe
+      const tokens = await this.generateTokens(identity.id, identity.email!, identity.phone!);
 
       // Update refresh token hash
       const newRefreshTokenHash = await bcrypt.hash(tokens.refreshToken, this.saltRounds);
@@ -218,8 +271,8 @@ export class AuthService {
     }
 
     // Send reset password OTP
-    const email = identity.email || emailOrPhone;
-    await this.otpService.sendOtp(identity.id, 'RESET_PWD' as any, email);
+    // Note: email is required in schema, so non-null assertion is safe
+    await this.otpService.sendOtp(identity.id, 'RESET_PWD' as any, identity.email!);
 
     return { message: 'If the identity exists, a reset code has been sent' };
   }
@@ -263,7 +316,7 @@ export class AuthService {
     return { message: 'Account deleted successfully' };
   }
 
-  private async generateTokens(identityId: string, email?: string, phone?: string) {
+  private async generateTokens(identityId: string, email: string, phone: string) {
     const payload: JwtPayload = {
       sub: identityId,
       email,

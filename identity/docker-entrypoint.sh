@@ -10,20 +10,21 @@ if [ -d "node_modules" ] && [ -f "node_modules/.yarn-integrity" ]; then
      [ "yarn.lock" -nt "node_modules/.yarn-integrity" ] || \
      [ ! -f "yarn.lock" ]; then
     echo "🔄 package.json or yarn.lock changed, cleaning cache and reinstalling..."
-    # Remove node_modules, yarn.lock and clear yarn cache
-    # yarn cache clean @ecom-rmk/libs, cause yarn caches packages by name (@ecom-rmk/libs), not by version or file path. When using file: protocol.tgz
-    rm -rf node_modules yarn.lock
-    yarn cache clean @ecom-rmk/libs 2>/dev/null || true
+    # Remove yarn.lock and clear yarn cache (not removing node_modules to avoid "Resource busy" error)
+    # Yarn install will automatically update node_modules when package.json changes
+    rm -f yarn.lock
+    # yarn cache clean (without package name), cause yarn caches packages by name (@ecom-rmk/libs), not by version or file path. When using file: protocol.tgz
+    yarn cache clean
     echo "📦 Installing identity service dependencies..."
-    yarn install
+    yarn install --force
   else
     echo "✅ package.json and yarn.lock unchanged, skipping yarn install"
   fi
 else
   echo "📦 Installing identity service dependencies..."
   # Clean cache on first install to ensure fresh package
-  yarn cache clean @ecom-rmk/libs 2>/dev/null || true
-  yarn install
+  yarn cache clean
+  yarn install --force
 fi
 
 # Check if Prisma client is generated

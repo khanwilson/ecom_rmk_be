@@ -15,7 +15,7 @@ export class IdentityService implements OnModuleInit {
   ) { }
 
   async onModuleInit() {
-    await retryConnectKafkaService(this.subscribeKafkaTopics());
+    await retryConnectKafkaService(this.subscribeKafkaTopics.bind(this));
   }
 
   async subscribeKafkaTopics(): Promise<void> {
@@ -63,6 +63,7 @@ export class IdentityService implements OnModuleInit {
       // Test MongoDB connection by creating a test record
       const testData = {
         email: `test-${Date.now()}@example.com`,
+        phone: '09123456789',
         passwordHash: 'test-password-hash-' + Date.now(),
         status: IdentityStatus.PENDING, // Using PENDING as default status
       };

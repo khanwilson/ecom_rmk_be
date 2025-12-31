@@ -209,6 +209,106 @@ services:
       retries: 6
       start_period: 60s
 
+  # MongoDB Replica Set - Primary Node
+  mongodb-primary:
+    image: mongo:7.0
+    container_name: mongodb-primary
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_primary_data:/data/db
+      - mongodb_primary_config:/data/configdb
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - mongodb-replica
+
+  # MongoDB Replica Set - Secondary Node 1
+  mongodb-secondary-1:
+    image: mongo:7.0
+    container_name: mongodb-secondary-1
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_secondary1_data:/data/db
+      - mongodb_secondary1_config:/data/configdb
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - mongodb-replica
+
+  # MongoDB Replica Set - Secondary Node 2
+  mongodb-secondary-2:
+    image: mongo:7.0
+    container_name: mongodb-secondary-2
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongodb_secondary2_data:/data/db
+      - mongodb_secondary2_config:/data/configdb
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - mongodb-replica
+
+  # MongoDB Replica Set Initialization
+  mongodb-replica-init:
+    image: mongo:7.0
+    container_name: mongodb-replica-init
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      mongodb-secondary-1:
+        condition: service_healthy
+      mongodb-secondary-2:
+        condition: service_healthy
+    entrypoint:
+      - sh
+      - -c
+      - |
+        sleep 10;
+        mongosh --host mongodb-primary:27017 --eval "
+          try {
+            const status = rs.status();
+            if (status.ok === 1) {
+              print('Replica set already initialized');
+              exit(0);
+            }
+          } catch (e) {
+            print('Initializing replica set...');
+            rs.initiate({
+              _id: 'rs0',
+              members: [
+                { _id: 0, host: 'mongodb-primary:27017', priority: 2 },
+                { _id: 1, host: 'mongodb-secondary-1:27017', priority: 1 },
+                { _id: 2, host: 'mongodb-secondary-2:27017', priority: 1 }
+              ]
+            });
+            print('Replica set initialized successfully');
+          }
+        "
+    networks:
+      - mongodb-replica
+    restart: "no"
+
   identity-service:
     build:
       context: .
@@ -228,6 +328,10 @@ services:
         condition: service_healthy
       redis-cluster-init:
         condition: service_started
+      mongodb-primary:
+        condition: service_healthy
+      mongodb-replica-init:
+        condition: service_completed_successfully
     volumes:
       - ./libs:/usr/src/libs
       - ./identity/src:/usr/src/identity/src
@@ -255,6 +359,10 @@ services:
         condition: service_healthy
       redis-cluster-init:
         condition: service_started
+      mongodb-primary:
+        condition: service_healthy
+      mongodb-replica-init:
+        condition: service_completed_successfully
     volumes:
       - ./libs:/usr/src/libs
       - ./product/src:/usr/src/product/src
@@ -262,6 +370,10 @@ services:
       - ./product/modules:/usr/src/product/modules
       - ./product/utils:/usr/src/product/utils
       - product_node_modules:/usr/src/product/node_modules
+
+networks:
+  mongodb-replica:
+    driver: bridge
 
 volumes:
   kafka_data:
@@ -274,5 +386,11 @@ volumes:
   redis5_data:
   redis6_data:
   redis_cluster_data:
+  mongodb_primary_data:
+  mongodb_primary_config:
+  mongodb_secondary1_data:
+  mongodb_secondary1_config:
+  mongodb_secondary2_data:
+  mongodb_secondary2_config:
   identity_node_modules:
   product_node_modules:

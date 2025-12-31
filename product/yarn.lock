@@ -347,7 +347,7 @@
 
 "@ecom-rmk/libs@file:../libs/ecom-rmk-libs-v1.0.0.tgz":
   version "1.0.0"
-  resolved "file:../libs/ecom-rmk-libs-v1.0.0.tgz#ad3ca980f1a676cc0d2c9751601f249c3195c67a"
+  resolved "file:../libs/ecom-rmk-libs-v1.0.0.tgz#f6be7dae0cce7db60dad6bca3ce0efe07262982d"
   dependencies:
     "@nestjs/common" "^11.0.1"
     "@nestjs/config" "^4.0.2"

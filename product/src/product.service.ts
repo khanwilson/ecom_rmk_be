@@ -15,7 +15,7 @@ export class ProductService implements OnModuleInit {
   ) { }
 
   async onModuleInit() {
-    await retryConnectKafkaService(this.subscribeKafkaTopics());
+    await retryConnectKafkaService(this.subscribeKafkaTopics.bind(this));
   }
 
   async subscribeKafkaTopics(): Promise<void> {

@@ -14,7 +14,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 enum IdentityStatus {
   AVAILABLE
   LOCKED
@@ -32,8 +31,8 @@ enum OtpType {
 
 model Identity {
   id                String         @id @default(auto()) @map("_id") @db.ObjectId
-  email             String?        @unique
-  phone             String?        @unique
+  email             String         @unique
+  phone             String         @unique
   passwordHash      String
   refreshTokenHash  String?
   status            IdentityStatus @default(PENDING)

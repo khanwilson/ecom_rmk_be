@@ -1,40 +1,43 @@
-# Dependencies
-node_modules
-npm-debug.log
-yarn-error.log
+# Dependencies (match at any level) - CRITICAL: Exclude node_modules
+**/node_modules
+**/npm-debug.log
+**/yarn-error.log
+# yarn.lock is needed for frozen-lockfile install, so we need to copy it
+# **/yarn.lock
 
-# Build outputs
-dist
-generated
-*.tsbuildinfo
+# Build outputs (match at any level)
+**/dist
+**/generated
+**/*.tsbuildinfo
 
-# Environment & secrets
-.env
-.env.*
-.env.local
-.env*.local
+# Environment & secrets (match at any level: root, product/, identity/, etc.)
+**/.env
+**/.env.*
 
-# Git
-.git
-.gitignore
+# Git (match at any level)
+**/.git
+**/.gitignore
 
-# Docker
-Dockerfile
-.dockerignore
-docker-compose*.yml
+# Docker files (match at any level)
+**/Dockerfile
+**/Dockerfile.*
+**/.dockerignore
+**/docker-compose*.yml
 
-# IDE
-.vscode
-.idea
-*.swp
-*.swo
+# IDE files (match at any level)
+**/.vscode
+**/.idea
+**/*.swp
+**/*.swo
 
-# Testing
-coverage
-.nyc_output
-.spec.ts
+# Testing (match at any level)
+**/coverage
+**/.nyc_output
+**/*.spec.ts
+**/*.test.ts
 
-# Misc
-*.md
-.DS_Store
-*.log
+# Misc (match at any level)
+**/*.md
+**/.DS_Store
+**/Thumbs.db
+**/*.log

@@ -1,15 +1,4 @@
 services:
-  root-deps:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: root-deps
-    volumes:
-      - .:/usr/src/app
-      - root_node_modules:/usr/src/app/node_modules
-    command: tail -f /dev/null
-    restart: "no"
-
   kafka:
     image: apache/kafka:3.7.0
     hostname: kafka
@@ -126,19 +115,17 @@ services:
 
   identity-service:
     build:
-      context: ./src/services/identity
-      dockerfile: Dockerfile.prod
+      context: ./identity
+      dockerfile: Dockerfile
       args:
         - DB_URI=${DB_URI}
     container_name: identity-service
     env_file:
       - .env.prod
-      - src/services/identity/.env.prod
+      - identity/.env
     ports:
-      - "${IDENTITY_PORT:-3100}:${IDENTITY_PORT:-3100}"
+      - "${IDENTITY_PORT:-3001}:${IDENTITY_PORT:-3001}"
     depends_on:
-      root-deps:
-        condition: service_started
       kafka:
         condition: service_healthy
       redis-node-1:
@@ -150,7 +137,9 @@ services:
       - DB_URI=${DB_URI}
       - KAFKA_BROKER=${KAFKA_BROKER}
       - REDIS_CLUSTER_NODES=${REDIS_CLUSTER_NODES}
-      - IDENTITY_PORT=${IDENTITY_PORT:-3100}
+      - REDIS_HOST=redis-node-1
+      - REDIS_PORT=6379
+      - IDENTITY_PORT=${IDENTITY_PORT:-3001}
     restart: unless-stopped
 
 volumes:

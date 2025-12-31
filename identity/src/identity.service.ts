@@ -1,0 +1,117 @@
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { ClientKafka } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
+import { RedisService } from '@ecom-rmk/libs/redis';
+import { IdentityStatus } from 'generated/prisma/enums';
+import { prisma } from 'prisma/prisma';
+import { KAFKA_SERVICES, KAFKA_TOPICS } from 'utils/kafka.enum';
+import { retryConnectKafkaService } from '@ecom-rmk/libs/utils';
+
+@Injectable()
+export class IdentityService implements OnModuleInit {
+  constructor(
+    private readonly redisService: RedisService,
+    @Inject(KAFKA_SERVICES.PRODUCT_SERVICE) private readonly productClient: ClientKafka,
+  ) { }
+
+  async onModuleInit() {
+    await retryConnectKafkaService(this.subscribeKafkaTopics());
+  }
+
+  async subscribeKafkaTopics(): Promise<void> {
+    this.productClient.subscribeToResponseOf(KAFKA_TOPICS.IDENTITY_MESSAGE);
+    await this.productClient.connect();
+  }
+
+  getHello(): string {
+    return 'Hello World!!!!';
+  }
+
+  async testRedis(): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const testKey = 'test:redis:connection';
+      const testValue = { timestamp: Date.now(), message: 'Redis test successful' };
+
+      // Test get
+      const retrieved = await this.redisService.get(testKey);
+
+      if (!retrieved) await this.redisService.set(testKey, testValue, 60); // TTL 60 seconds
+
+      // Test exists
+      const exists = await this.redisService.exists(testKey);
+
+      return {
+        success: true,
+        message: 'Redis connection and operations successful',
+        data: {
+          set: 'OK',
+          retrieved,
+          exists,
+          ttl: await this.redisService.ttl(testKey),
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Redis test failed: ${error.message}`,
+      };
+    }
+  }
+
+  async testMongoDB(): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      // Test MongoDB connection by creating a test record
+      const testData = {
+        email: `test-${Date.now()}@example.com`,
+        passwordHash: 'test-password-hash-' + Date.now(),
+        status: IdentityStatus.PENDING, // Using PENDING as default status
+      };
+
+      // Try to create a test identity
+      const result = await prisma.identity.create({
+        data: testData,
+        select: {
+          id: true,
+          email: true,
+          status: true,
+          createdAt: true,
+        },
+      });
+
+      return {
+        success: true,
+        message: 'MongoDB connection and insert successful',
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `MongoDB test failed: ${error.message}`,
+      };
+    }
+  }
+
+  async emitToProduct(message: string, data?: any): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const payload = {
+        message,
+        data: data || { timestamp: Date.now(), from: KAFKA_SERVICES.IDENTITY_SERVICE },
+        timestamp: new Date().toISOString(),
+      };
+
+      const result = await firstValueFrom(this.productClient.send(KAFKA_TOPICS.IDENTITY_MESSAGE, payload));
+
+      return {
+        success: true,
+        message: 'Message sent to Product service successfully',
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to send message to Product service: ${error.message}`,
+      };
+    }
+  }
+}
+

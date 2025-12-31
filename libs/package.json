@@ -1,0 +1,78 @@
+{
+  "name": "@ecom-rmk/libs",
+  "version": "1.0.0",
+  "description": "Shared libraries for ecom-rmk microservices",
+  "main": "./dist/index.js",
+  "types": "./index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    },
+    "./redis": {
+      "types": "./redis/index.ts",
+      "require": "./dist/redis/index.js",
+      "import": "./dist/redis/index.js"
+    },
+    "./common": {
+      "types": "./common/index.ts",
+      "require": "./dist/common/index.js",
+      "import": "./dist/common/index.js"
+    },
+    "./utils": {
+      "types": "./utils/index.ts",
+      "require": "./dist/utils/index.js",
+      "import": "./dist/utils/index.js"
+    }
+  },
+  "files": [
+    "*.ts",
+    "**/*.ts",
+    "!**/*.spec.ts",
+    "!**/*.test.ts",
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/<your-org>/ecom-rmk-be.git",
+    "directory": "libs"
+  },
+  "keywords": [
+    "nestjs",
+    "microservices",
+    "shared",
+    "libs",
+    "redis",
+    "utils"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "pack": "yarn build && yarn pack",
+    "pack:dry": "yarn build && yarn pack --dry-run",
+    "prepublishOnly": "yarn build",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/swagger": "^8.1.1",
+    "ioredis": "^5.4.1",
+    "mongodb": "^6.0.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "typescript": "^5.7.3"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0"
+  }
+}
+

@@ -1,27 +1,171 @@
 services:
-  root-deps:
+  libs-builder:
     build:
-      context: .
+      context: ./libs
       dockerfile: Dockerfile
-    container_name: root-deps
     volumes:
-      - .:/usr/src
-      - root_node_modules:/usr/src/node_modules
-    restart: "no"
-    # Container will install dependencies and exit
-    # Dependencies will persist in root_node_modules volume
-
-  db:
-    image: mongo:7.0.0
-    restart: always
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${DB_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${DB_PASSWORD}
+      - ./libs:/usr/src/libs
+  redis-node-1:
+    image: redis:7-alpine
+    container_name: redis-node-1
+    command:
+      [
+        "redis-server",
+        "--port",
+        "6379",
+        "--cluster-enabled",
+        "yes",
+        "--cluster-config-file",
+        "nodes.conf",
+        "--appendonly",
+        "yes",
+      ]
     ports:
-      - 27017:27017
+      - "6379:6379"
     volumes:
-      - mongo_data:/data/db # Use named volume for data persistence
-      - mongo_config:/data/configdb # Use named volume for config persistence
+      - redis1_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli -h redis-node-1 -p 6379 cluster info | grep 'cluster_state:ok'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis-node-2:
+    image: redis:7-alpine
+    container_name: redis-node-2
+    command:
+      [
+        "redis-server",
+        "--port",
+        "6379",
+        "--cluster-enabled",
+        "yes",
+        "--cluster-config-file",
+        "nodes.conf",
+        "--appendonly",
+        "yes",
+      ]
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis2_data:/data
+    restart: unless-stopped
+
+  redis-node-3:
+    image: redis:7-alpine
+    container_name: redis-node-3
+    command:
+      [
+        "redis-server",
+        "--port",
+        "6379",
+        "--cluster-enabled",
+        "yes",
+        "--cluster-config-file",
+        "nodes.conf",
+        "--appendonly",
+        "yes",
+      ]
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis3_data:/data
+    restart: unless-stopped
+
+  redis-node-4:
+    image: redis:7-alpine
+    container_name: redis-node-4
+    command:
+      [
+        "redis-server",
+        "--port",
+        "6379",
+        "--cluster-enabled",
+        "yes",
+        "--cluster-config-file",
+        "nodes.conf",
+        "--appendonly",
+        "yes",
+      ]
+    ports:
+      - "6382:6379"
+    volumes:
+      - redis4_data:/data
+    restart: unless-stopped
+
+  redis-node-5:
+    image: redis:7-alpine
+    container_name: redis-node-5
+    command:
+      [
+        "redis-server",
+        "--port",
+        "6379",
+        "--cluster-enabled",
+        "yes",
+        "--cluster-config-file",
+        "nodes.conf",
+        "--appendonly",
+        "yes",
+      ]
+    ports:
+      - "6383:6379"
+    volumes:
+      - redis5_data:/data
+    restart: unless-stopped
+
+  redis-node-6:
+    image: redis:7-alpine
+    container_name: redis-node-6
+    command:
+      [
+        "redis-server",
+        "--port",
+        "6379",
+        "--cluster-enabled",
+        "yes",
+        "--cluster-config-file",
+        "nodes.conf",
+        "--appendonly",
+        "yes",
+      ]
+    ports:
+      - "6384:6379"
+    volumes:
+      - redis6_data:/data
+    restart: unless-stopped
+
+  redis-cluster-init:
+    image: redis:7-alpine
+    container_name: redis-cluster-init
+    depends_on:
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
+      - redis-node-6
+    entrypoint: [
+        "sh",
+        "-c",
+        "sleep 5; \
+        if redis-cli -h redis-node-1 -p 6379 cluster info | grep -q 'cluster_state:ok'; then \
+        echo 'Cluster already exists and is OK. Skipping creation.'; \
+        exit 0; \
+        else \
+        echo 'Attempting to create...'; \
+        redis-cli --cluster create redis-node-1:6379 redis-node-2:6379 redis-node-3:6379 redis-node-4:6379 redis-node-5:6379 redis-node-6:6379 --cluster-replicas 1 --cluster-yes; \
+        fi",
+      ]
+    volumes:
+      - redis_cluster_data:/data
+    restart: "no"
 
   kafka:
     image: apache/kafka:3.7.0
@@ -29,7 +173,6 @@ services:
     container_name: kafka
     ports:
       - "9092:9092"
-      - "9094:9094"  # External listener for host machine
     environment:
       # KRaft mode configuration (no Zookeeper needed)
       KAFKA_NODE_ID: 1
@@ -56,144 +199,71 @@ services:
       - kafka_config:/mnt/shared/config
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1 || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1 || exit 1",
+        ]
       interval: 10s
       timeout: 10s
       retries: 6
       start_period: 60s
 
-  redis-node-1:
-    image: redis:7-alpine
-    container_name: redis-node-1
-    command: ["redis-server", "--port", "6379", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--appendonly", "yes"]
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis1_data:/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli -h redis-node-1 -p 6379 cluster info | grep 'cluster_state:ok'"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-
-  redis-node-2:
-    image: redis:7-alpine
-    container_name: redis-node-2
-    command: ["redis-server", "--port", "6379", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--appendonly", "yes"]
-    ports:
-      - "6380:6379"
-    volumes:
-      - redis2_data:/data
-    restart: unless-stopped
-
-  redis-node-3:
-    image: redis:7-alpine
-    container_name: redis-node-3
-    command: ["redis-server", "--port", "6379", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--appendonly", "yes"]
-    ports:
-      - "6381:6379"
-    volumes:
-      - redis3_data:/data
-    restart: unless-stopped
-
-  redis-node-4:
-    image: redis:7-alpine
-    container_name: redis-node-4
-    command: ["redis-server", "--port", "6379", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--appendonly", "yes"]
-    ports:
-      - "6382:6379"
-    volumes:
-      - redis4_data:/data
-    restart: unless-stopped
-
-  redis-node-5:
-    image: redis:7-alpine
-    container_name: redis-node-5
-    command: ["redis-server", "--port", "6379", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--appendonly", "yes"]
-    ports:
-      - "6383:6379"
-    volumes:
-      - redis5_data:/data
-    restart: unless-stopped
-
-  redis-node-6:
-    image: redis:7-alpine
-    container_name: redis-node-6
-    command: ["redis-server", "--port", "6379", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--appendonly", "yes"]
-    ports:
-      - "6384:6379"
-    volumes:
-      - redis6_data:/data
-    restart: unless-stopped
-
-  redis-cluster-init:
-    image: redis:7-alpine
-    container_name: redis-cluster-init
-    depends_on:
-      - redis-node-1
-      - redis-node-2
-      - redis-node-3
-      - redis-node-4
-      - redis-node-5
-      - redis-node-6
-    entrypoint: [
-      "sh", "-c",
-      "sleep 5; \
-       if redis-cli -h redis-node-1 -p 6379 cluster info | grep -q 'cluster_state:ok'; then \
-         echo 'Cluster already exists and is OK. Skipping creation.'; \
-         exit 0; \
-       else \
-         echo 'Attempting to create...'; \
-         redis-cli --cluster create redis-node-1:6379 redis-node-2:6379 redis-node-3:6379 redis-node-4:6379 redis-node-5:6379 redis-node-6:6379 --cluster-replicas 1 --cluster-yes; \
-       fi"
-    ]
-    volumes:
-      - redis_cluster_data:/data
-    restart: "no"
-
   identity-service:
     build:
-      context: ./src/services/identity
-      dockerfile: Dockerfile.dev
-      args:
-        - DB_URI=${DB_URI}
+      context: .
+      dockerfile: ./identity/Dockerfile.dev
     container_name: identity-service
     env_file:
-      - .env.dev
-      - src/services/identity/.env.dev
+      - ./.env
+      - ./identity/.env
     ports:
-      - "${IDENTITY_PORT:-3100}:${IDENTITY_PORT:-3100}"
+      - "${IDENTITY_PORT}:${IDENTITY_PORT}"
     depends_on:
-      root-deps:
-        condition: service_started
-      db:
-        condition: service_started
       kafka:
         condition: service_healthy
+      libs-builder:
+        condition: service_started
       redis-node-1:
         condition: service_healthy
       redis-cluster-init:
         condition: service_started
     volumes:
-      - ./src/services/identity:/usr/src/services/identity
-      - ./src/libs:/usr/src/libs
-      - identity_node_modules:/usr/src/services/identity/node_modules # add service dependencies to service
-      - root_node_modules:/usr/src/node_modules # add root dependencies to service
-    environment:
-      - NODE_ENV=dev
-      - DB_URI=${DB_URI}
-      - KAFKA_BROKER=${KAFKA_BROKER}
-      - REDIS_CLUSTER_NODES=${REDIS_CLUSTER_NODES}
-      - IDENTITY_PORT=${IDENTITY_PORT:-3100}
-      - NODE_PATH=/usr/src/node_modules:/usr/src/services/identity/node_modules # add root dependencies to service
-    command: yarn start:dev
+      - ./libs:/usr/src/libs
+      - ./identity/src:/usr/src/identity/src
+      - ./identity/prisma:/usr/src/identity/prisma
+      - ./identity/modules:/usr/src/identity/modules
+      - ./identity/utils:/usr/src/identity/utils
+      - identity_node_modules:/usr/src/identity/node_modules
+
+  product-service:
+    build:
+      context: .
+      dockerfile: ./product/Dockerfile.dev
+    container_name: product-service
+    env_file:
+      - ./.env
+      - ./product/.env
+    ports:
+      - "${PRODUCT_PORT}:${PRODUCT_PORT}"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      libs-builder:
+        condition: service_started
+      redis-node-1:
+        condition: service_healthy
+      redis-cluster-init:
+        condition: service_started
+    volumes:
+      - ./libs:/usr/src/libs
+      - ./product/src:/usr/src/product/src
+      - ./product/prisma:/usr/src/product/prisma
+      - ./product/modules:/usr/src/product/modules
+      - ./product/utils:/usr/src/product/utils
+      - product_node_modules:/usr/src/product/node_modules
 
 volumes:
-  root_node_modules:
-  mongo_data:
-  mongo_config:
   kafka_data:
   kafka_secrets:
   kafka_config:
@@ -205,3 +275,4 @@ volumes:
   redis6_data:
   redis_cluster_data:
   identity_node_modules:
+  product_node_modules:

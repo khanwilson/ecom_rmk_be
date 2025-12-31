@@ -1,0 +1,27 @@
+# Development Dockerfile for Identity Service
+FROM node:24-alpine
+
+# Destination path of COPY and WORKDIR
+WORKDIR /usr/src/identity
+
+# Install dependencies for Prisma
+RUN apk add --no-cache openssl
+
+# Copy libs source code and build package
+COPY libs/ /usr/src/libs/
+WORKDIR /usr/src/libs
+RUN yarn install && yarn build && yarn pack
+
+# Return to service directory and copy package files
+WORKDIR /usr/src/identity
+# Copy all service files
+COPY identity/ ./
+# Copy and set up entrypoint script
+COPY identity/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Set entrypoint to handle yarn install and prisma generate
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+# Push schema to database and start dev server
+CMD ["sh", "-c", "yarn prisma db push && yarn start:dev"]

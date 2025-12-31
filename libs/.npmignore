@@ -1,0 +1,47 @@
+# Exclude test files only
+**/*.spec.ts
+**/*.test.ts
+
+# Development files
+tsconfig.json
+.eslintrc*
+.prettierrc*
+.gitignore
+
+# Build artifacts
+*.tsbuildinfo
+*.map
+
+# Test files
+test/
+*.spec.ts
+*.test.ts
+
+# Dependencies
+node_modules/
+yarn.lock
+package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.*
+
+# Misc
+coverage/
+.temp/
+.tmp/
+

@@ -9,7 +9,8 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard, CurrentUser, JwtPayload } from '@ecom-rmk/libs/auth';
+import { JwtAuthGuard, CurrentUser } from '@ecom-rmk/libs/auth';
+import type { JwtPayload } from '@ecom-rmk/libs/auth';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';

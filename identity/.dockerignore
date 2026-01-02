@@ -2,7 +2,8 @@
 node_modules
 npm-debug.log
 yarn-error.log
-# yarn.lock is needed for frozen-lockfile install
+# bun.lockb will be generated in container
+# bun.lockb
 
 # Build outputs
 dist

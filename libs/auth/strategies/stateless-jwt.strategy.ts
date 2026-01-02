@@ -1,9 +1,9 @@
-import { Injectable, UnauthorizedException, Optional } from '@nestjs/common';
+import { Injectable, Optional, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { RedisService } from '../../redis/redis.service';
+import { IdentityStatus, JwtPayload } from '../interfaces/jwt-payload.interface';
 
 /**
  * Stateless JWT Strategy with optional Redis cache support
@@ -64,9 +64,13 @@ export class StatelessJwtStrategy extends PassportStrategy(Strategy) {
     // Try to get identity info from Redis cache
     const JwtPayload = await this.getIdentityFromCache(payload.sub);
     if (JwtPayload) {
-      return JwtPayload;
+      if (JwtPayload.status === IdentityStatus.AVAILABLE) {
+        return JwtPayload;
+      } else {
+        throw new UnauthorizedException('Account is not available');
+      }
     } else {
-      throw new UnauthorizedException('Identity not found');
+      throw new UnauthorizedException('Account not found');
     }
   }
 

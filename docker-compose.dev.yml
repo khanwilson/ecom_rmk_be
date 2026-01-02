@@ -319,7 +319,6 @@ services:
     container_name: identity-service
     env_file:
       - ./.env
-      - ./identity/.env
     ports:
       - "${IDENTITY_PORT}:${IDENTITY_PORT}"
     depends_on:
@@ -351,7 +350,6 @@ services:
     container_name: product-service
     env_file:
       - ./.env
-      - ./product/.env
     ports:
       - "${PRODUCT_PORT}:${PRODUCT_PORT}"
     depends_on:

@@ -1,6 +1,7 @@
 import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard, CurrentUser, JwtPayload } from '@ecom-rmk/libs/auth';
+import { JwtAuthGuard, CurrentUser } from '@ecom-rmk/libs/auth';
+import type { JwtPayload } from '@ecom-rmk/libs/auth';
 import { OtpService } from './otp.service';
 
 @ApiTags('otp')

@@ -4,7 +4,12 @@
 
 - **Language**: Respond in the same language as the user's query
 - **Code Comments**: All code comments and notes must be in English only
-- **Package Manager**: Prefer yarn over npm for all commands when possible
+- **Package Manager**: **MUST use Bun** for all package management and script execution
+  - Use `bun` instead of `npm`, `yarn`, or `pnpm`
+  - Use `bunx` instead of `npx` for running packages (e.g., `bunx prisma generate`)
+  - Examples:
+    - ✅ Good: `bun install`, `bun run build`, `bunx prisma db push`
+    - ❌ Bad: `npm install`, `yarn install`, `npx prisma generate`
 
 ## Import Standards
 
@@ -48,9 +53,11 @@
 
 ### Technology Stack
 - **Framework**: NestJS
+- **Package Manager**: Bun (replaces npm/yarn)
+- **Runtime**: Bun (can also use Node.js)
 - **ORM**: Prisma
 - **Database**: MongoDB
-- **Containerization**: Docker
+- **Containerization**: Docker (using official `oven/bun` image)
 
 ### System Architecture
 - **Type**: Super app, multi microservices architecture
@@ -79,12 +86,12 @@
 - Installed via `package.json` in each microservice
 
 ### Cache Limitation
-- **Issue**: Yarn cache distinguishes `.tgz` packages by name, not version
+- **Issue**: Bun cache distinguishes `.tgz` packages by name, not version
 - **Impact**: Changes to `libs/` may not be reflected if cache is not cleared
 - **Solution**: Each service's `docker-entrypoint.sh` must:
-  - Delete `node_modules`
-  - Clean yarn cache
-  - Reinstall dependencies when `package.json` or `package.lock` changes
+  - Delete `node_modules` and `bun.lockb` to force fresh install
+  - Use `bun install --force` to force reinstall all packages (similar to `yarn install --force`)
+  - Reinstall dependencies when `package.json` or `bun.lockb` changes
 
 ### Content Guidelines
 - Contains shared variables and helper functions
@@ -96,9 +103,9 @@
 
 ### When `libs/` Changes
 1. Update `libs/` code
-2. Rebuild and repackage as `.tgz`
+2. Rebuild using `bun run build` and repackage as `.tgz` using `bun pm pack`
 3. Update service `package.json` if needed
-4. Ensure `docker-entrypoint.sh` handles cache clearing and reinstallation
+4. Ensure `docker-entrypoint.sh` handles cache clearing and reinstallation using `bun install --force`
 
 ## Environment Variables
 

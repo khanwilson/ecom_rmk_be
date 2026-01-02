@@ -79,7 +79,7 @@ export class AuthService {
               email,
               phone,
               passwordHash,
-              status: IdentityStatus.PENDING, // Will be AVAILABLE after email verification
+              status: IdentityStatus.AVAILABLE,
             },
             select: {
               id: true,
@@ -138,7 +138,7 @@ export class AuthService {
     }
 
     // Generate tokens
-    const tokens = await this.generateTokens(result.identity.id, email, phone);
+    const tokens = await this.generateTokens(result.identity.id, email, phone, result.identity.status);
 
     return {
       ...tokens,
@@ -188,7 +188,7 @@ export class AuthService {
 
     // Generate tokens
     // Note: email and phone are required in schema, so non-null assertion is safe
-    const tokens = await this.generateTokens(identity.id, identity.email!, identity.phone!);
+    const tokens = await this.generateTokens(identity.id, identity.email!, identity.phone!, identity.status);
 
     // Store refresh token hash
     const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, this.saltRounds);
@@ -231,7 +231,7 @@ export class AuthService {
 
       // Generate new tokens
       // Note: email and phone are required in schema, so non-null assertion is safe
-      const tokens = await this.generateTokens(identity.id, identity.email!, identity.phone!);
+      const tokens = await this.generateTokens(identity.id, identity.email!, identity.phone!, identity.status);
 
       // Update refresh token hash
       const newRefreshTokenHash = await bcrypt.hash(tokens.refreshToken, this.saltRounds);
@@ -317,12 +317,13 @@ export class AuthService {
     return { message: 'Account deleted successfully' };
   }
 
-  private async generateTokens(identityId: string, email: string, phone: string) {
+  private async generateTokens(identityId: string, email: string, phone: string, status: IdentityStatus) {
     // Generate new tokens (always generate fresh tokens)
     const payload: JwtPayload = {
       sub: identityId,
       email: email,
       phone: phone,
+      status: status as any,
     };
 
     const [accessToken, refreshToken] = await Promise.all([

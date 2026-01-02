@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "docker:build": "docker-compose -f docker-compose.dev.yml down && docker-compose -f docker-compose.dev.yml up -d --build",
-    "docker:build-identity": "docker-compose -f docker-compose.dev.yml stop identity-service && docker-compose -f docker-compose.dev.yml rm -f identity-service && docker-compose -f docker-compose.dev.yml up -d --build identity-service",
-    "docker:build-product": "docker-compose -f docker-compose.dev.yml stop product-service && docker-compose -f docker-compose.dev.yml rm -f product-service && docker-compose -f docker-compose.dev.yml up -d --build product-service"
+    "docker:services-rebuild": "docker-compose -f docker-compose.dev.yml stop libs-builder identity-service product-service && docker-compose -f docker-compose.dev.yml rm -f libs-builder identity-service product-service && docker-compose -f docker-compose.dev.yml up -d --build libs-builder identity-service product-service",
+    "docker:services-restart": "docker-compose -f docker-compose.dev.yml restart libs-builder identity-service product-service"
   },
   "keywords": [
     "microservices",

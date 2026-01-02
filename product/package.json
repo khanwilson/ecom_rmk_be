@@ -19,10 +19,10 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "clean-cache": "rm -rf yarn.lock && yarn cache clean && yarn install --force"
+    "clean-cache": "rm -rf bun.lockb && bun install --force"
   },
   "dependencies": {
-    "@ecom-rmk/libs": "file:../libs/ecom-rmk-libs-v1.0.0.tgz",
+    "@ecom-rmk/libs": "file:../libs/ecom-rmk-libs-1.0.0.tgz",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",

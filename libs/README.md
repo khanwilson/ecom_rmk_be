@@ -44,7 +44,7 @@ Create a tarball package file (for testing before publishing):
 ```bash
 yarn pack
 # or dry-run to see what will be included
-yarn pack:dry
+yarn pack:publish
 ```
 
 This will create a file like `ecom-rmk-libs-0.0.1.tgz` that you can test locally.

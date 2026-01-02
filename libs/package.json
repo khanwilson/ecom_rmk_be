@@ -62,9 +62,7 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
-    "pack": "yarn build && yarn pack",
-    "pack:dry": "yarn build && yarn pack --dry-run",
-    "prepublishOnly": "yarn build",
+    "pack:publish": "bun run build && bun pm pack",
     "clean": "rm -rf dist"
   },
   "dependencies": {

@@ -4,6 +4,8 @@ export enum KAFKA_SERVICES {
 }
 
 export enum KAFKA_TOPICS {
-  IDENTITY_MESSAGE = 'ecom.identity.message',
-  PRODUCT_MESSAGE = 'ecom.product.message',
+  HELLO = 'ecom.hello',
+
+  PRODUCT_CREATE = 'ecom.product.create',
 }
+

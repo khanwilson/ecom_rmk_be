@@ -20,10 +20,20 @@
       "require": "./dist/common/index.js",
       "import": "./dist/common/index.js"
     },
+    "./kafka": {
+      "types": "./kafka/index.ts",
+      "require": "./dist/kafka/index.js",
+      "import": "./dist/kafka/index.js"
+    },
     "./utils": {
       "types": "./utils/index.ts",
       "require": "./dist/utils/index.js",
       "import": "./dist/utils/index.js"
+    },
+    "./auth": {
+      "types": "./auth/index.ts",
+      "require": "./dist/auth/index.js",
+      "import": "./dist/auth/index.js"
     }
   },
   "files": [
@@ -60,9 +70,11 @@
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
+    "@nestjs/passport": "^11.0.5",
     "@nestjs/swagger": "^8.1.1",
     "ioredis": "^5.4.1",
     "mongodb": "^6.0.0",
+    "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
@@ -72,7 +84,9 @@
   },
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",
-    "@nestjs/config": "^4.0.0"
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/passport": "^11.0.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1"
   }
 }
-

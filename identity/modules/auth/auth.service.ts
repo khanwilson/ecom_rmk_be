@@ -1,4 +1,4 @@
-import { handlePrismaError } from '@ecom-rmk/libs/common';
+import { handleError } from '@ecom-rmk/libs/common';
 import { RedisService } from '@ecom-rmk/libs/redis';
 import {
   ConflictException,
@@ -15,12 +15,12 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { JwtPayload } from './strategies/jwt.strategy';
+import { JwtPayload } from '@ecom-rmk/libs/auth';
 
 @Injectable()
 export class AuthService {
   private readonly saltRounds: number;
-  private readonly accessTokenExpiresIn: string;
+  private readonly accessTokenExpiresIn: number;
   private readonly refreshTokenExpiresIn: string;
   private readonly jwtAccessSecret: string;
   private readonly jwtRefreshSecret: string;
@@ -33,8 +33,9 @@ export class AuthService {
   ) {
     // Parse saltRounds to ensure it's a number (env variables are strings by default)
     const saltRoundsEnv = this.configService.get<string>('BCRYPT_SALT_ROUNDS', '12');
-    this.saltRounds = typeof saltRoundsEnv === 'number' ? saltRoundsEnv : parseInt(saltRoundsEnv, 10) || 12;
-    this.accessTokenExpiresIn = this.configService.get<string>('ACCESS_TOKEN_EXPIRES_IN', '24h');
+    this.saltRounds = parseInt(saltRoundsEnv, 10) || 12;
+    const accessTokenExpiresIn = this.configService.get<string>('ACCESS_TOKEN_EXPIRES_IN', '86400');
+    this.accessTokenExpiresIn = parseInt(accessTokenExpiresIn, 10) || 86400;
     this.refreshTokenExpiresIn = this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN', '7d');
     this.jwtAccessSecret = this.configService.getOrThrow<string>('JWT_ACCESS_SECRET');
     this.jwtRefreshSecret = this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
@@ -113,7 +114,7 @@ export class AuthService {
     } catch (error: any) {
       // Use centralized Prisma error handler for consistent error responses
       // This ensures all Prisma errors are handled uniformly across the application
-      throw handlePrismaError(
+      throw handleError(
         error,
         'An unexpected error occurred during registration',
       );
@@ -317,22 +318,26 @@ export class AuthService {
   }
 
   private async generateTokens(identityId: string, email: string, phone: string) {
+    // Generate new tokens (always generate fresh tokens)
     const payload: JwtPayload = {
       sub: identityId,
-      email,
-      phone,
-    }
+      email: email,
+      phone: phone,
+    };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload as any, {
         secret: this.jwtAccessSecret,
-        expiresIn: this.accessTokenExpiresIn as any,
+        expiresIn: this.accessTokenExpiresIn,
       }),
       this.jwtService.signAsync(payload as any, {
         secret: this.jwtRefreshSecret,
         expiresIn: this.refreshTokenExpiresIn as any,
       }),
     ]);
+
+    const cacheKey = `jwt.identity:${identityId}`;
+    await this.redisService.set(cacheKey, payload, this.accessTokenExpiresIn);
 
     return { accessToken, refreshToken };
   }

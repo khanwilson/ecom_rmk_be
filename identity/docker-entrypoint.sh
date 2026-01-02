@@ -3,28 +3,35 @@ set -e
 
 cd /usr/src/identity
 
+# Function to clean and reinstall dependencies
+clean_and_install() {
+  echo "🔄 Cleaning cache and reinstalling dependencies..."
+  # Remove node_modules and yarn.lock to force fresh install
+  # Handle "Resource busy" error by ignoring it (container might be using files)
+  rm -rf node_modules yarn.lock 2>/dev/null || true
+  # yarn cache clean (without package name), cause yarn caches packages by name (@ecom-rmk/libs), not by version or file path. When using file: protocol.tgz
+  yarn cache clean
+  echo "📦 Installing identity service dependencies..."
+  yarn install --force
+}
+
 # Check if package.json or yarn.lock changed compared to previous install
 if [ -d "node_modules" ] && [ -f "node_modules/.yarn-integrity" ]; then
   # Check if package.json or yarn.lock is newer than yarn-integrity
   if [ "package.json" -nt "node_modules/.yarn-integrity" ] || \
      [ "yarn.lock" -nt "node_modules/.yarn-integrity" ] || \
      [ ! -f "yarn.lock" ]; then
-    echo "🔄 package.json or yarn.lock changed, cleaning cache and reinstalling..."
-    # Remove yarn.lock and clear yarn cache (not removing node_modules to avoid "Resource busy" error)
-    # Yarn install will automatically update node_modules when package.json changes
-    rm -f yarn.lock
-    # yarn cache clean (without package name), cause yarn caches packages by name (@ecom-rmk/libs), not by version or file path. When using file: protocol.tgz
-    yarn cache clean
-    echo "📦 Installing identity service dependencies..."
-    yarn install --force
+    clean_and_install
   else
     echo "✅ package.json and yarn.lock unchanged, skipping yarn install"
+    # Try to verify integrity, if fails, force reinstall
+    if ! yarn check --integrity 2>/dev/null; then
+      echo "⚠️ Integrity check failed, forcing reinstall..."
+      clean_and_install
+    fi
   fi
 else
-  echo "📦 Installing identity service dependencies..."
-  # Clean cache on first install to ensure fresh package
-  yarn cache clean
-  yarn install --force
+  clean_and_install
 fi
 
 # Check if Prisma client is generated

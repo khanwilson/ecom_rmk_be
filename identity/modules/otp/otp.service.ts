@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/
 import { ConfigService } from '@nestjs/config';
 import bcrypt from 'bcrypt';
 import { RedisService } from '@ecom-rmk/libs/redis';
+import { handleError } from '@ecom-rmk/libs/common';
 import { OtpType } from 'generated/prisma/enums';
 import { prisma } from 'prisma/prisma';
 @Injectable()
@@ -56,15 +57,20 @@ export class OtpService {
     const expiredAt = new Date(Date.now() + this.ttlSeconds * 1000);
 
     // Store in database
-    const otpRecord = await prisma.otp.create({
-      data: {
-        identityId,
-        code: otpHash,
-        type,
-        expiredAt,
-        sentCount: 1,
-      },
-    });
+    let otpRecord;
+    try {
+      otpRecord = await prisma.otp.create({
+        data: {
+          identityId,
+          code: otpHash,
+          type,
+          expiredAt,
+          sentCount: 1,
+        },
+      });
+    } catch (error) {
+      throw handleError(error, 'Failed to create OTP record');
+    }
 
     // Store in Redis for quick verification (TTL)
     const redisKey = `otp:${otpRecord.id}`;

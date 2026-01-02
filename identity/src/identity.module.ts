@@ -1,23 +1,23 @@
+import { KAFKA_SERVICES } from '@ecom-rmk/libs/kafka';
+import { RedisService } from '@ecom-rmk/libs/redis';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { RedisModule } from '@ecom-rmk/libs/redis';
-import { IdentityController } from './identity.controller';
-import { IdentityService } from './identity.service';
+import { KafkaController } from 'kafka/kafka.controller';
+import { KafkaService } from 'kafka/kafka.service';
 import { AuthModule } from 'modules/auth/auth.module';
 import { OtpModule } from 'modules/otp/otp.module';
+import { IdentityController } from './identity.controller';
+import { IdentityService } from './identity.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    RedisModule,
-    AuthModule,
-    OtpModule,
     ClientsModule.registerAsync([
       {
-        name: 'PRODUCT_SERVICE',
+        name: KAFKA_SERVICES.IDENTITY_SERVICE,
         imports: [ConfigModule],
         useFactory: (configService: ConfigService) => ({
           transport: Transport.KAFKA,
@@ -36,9 +36,11 @@ import { OtpModule } from 'modules/otp/otp.module';
         inject: [ConfigService],
       },
     ]),
+    AuthModule,
+    OtpModule,
   ],
-  controllers: [IdentityController],
-  providers: [IdentityService],
+  controllers: [IdentityController, KafkaController],
+  providers: [IdentityService, KafkaService, RedisService],
   exports: [IdentityService],
 })
 export class IdentityModule { }

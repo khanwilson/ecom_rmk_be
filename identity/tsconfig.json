@@ -14,6 +14,8 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
+      "src/*": ["src/*"],
+      "kafka/*": ["kafka/*"],
       "prisma/*": ["prisma/*"],
       "generated/*": ["generated/*"],
       "modules/*": ["modules/*"]

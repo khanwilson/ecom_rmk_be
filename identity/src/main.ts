@@ -1,5 +1,5 @@
 import { HttpExceptionInterceptor } from '@ecom-rmk/libs/common';
-import { retryConnectKafkaService } from '@ecom-rmk/libs/utils';
+import { retryConnect } from '@ecom-rmk/libs/utils';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -37,7 +37,7 @@ async function bootstrap() {
         description: 'Enter JWT token',
         in: 'header',
       },
-      'JWT-auth',
+      'accessToken',
     )
     .addTag('auth', 'Authentication endpoints')
     .addTag('otp', 'OTP endpoints')
@@ -70,13 +70,12 @@ async function bootstrap() {
     },
   });
 
-  await retryConnectKafkaService(app.startAllMicroservices);
+  await retryConnect('Kafka microservice (ServerKafka)', app.startAllMicroservices);
 
-  const port = process.env.IDENTITY_PORT || 3100;
+  const port = process.env.IDENTITY_PORT || 3001;
   await app.listen(port);
   console.log(`✅ Identity service running on: http://localhost:${port}`);
   console.log(`📚 Swagger: http://localhost:${port}/api`);
-  console.log(`🔌 Kafka broker: ${kafkaBroker}`);
 }
 
 bootstrap();

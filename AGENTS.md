@@ -6,6 +6,44 @@
 - **Code Comments**: All code comments and notes must be in English only
 - **Package Manager**: Prefer yarn over npm for all commands when possible
 
+## Import Standards
+
+### Use Absolute Imports
+- **Always prefer absolute imports over relative imports**: Use path aliases defined in `tsconfig.json` instead of relative paths like `../` or `../../`
+- **Available path aliases** (configured in `tsconfig.json`):
+  - `modules/*` - For importing from modules directory
+  - `prisma/*` - For importing from prisma directory
+  - `generated/*` - For importing from generated directory
+- **Examples**:
+  - ✅ Good: `import { AuthModule } from 'modules/auth/auth.module';`
+  - ❌ Bad: `import { AuthModule } from '../modules/auth/auth.module';`
+  - ✅ Good: `import { prisma } from 'prisma/prisma';`
+  - ❌ Bad: `import { prisma } from '../../prisma/prisma';`
+- **Benefits**: Cleaner code, easier refactoring, no path confusion when moving files
+
+## Kafka Directory Structure
+
+### Purpose
+- **`kafka/` directory**: Contains Kafka event consumers and handlers for inter-service communication
+- **Location**: Each microservice has its own `kafka/` directory at the root level (e.g., `identity/kafka/`, `product/kafka/`)
+
+### Rules
+- **Only EventPattern/MessagePattern**: This directory is exclusively for creating Kafka consumers using `@EventPattern()` and `@MessagePattern()` decorators
+- **No REST API Controllers**: Do NOT write REST API endpoints (like `@Get()`, `@Post()`, etc.) in this directory
+- **No Module Export**: This directory does NOT export a module to be imported into the main service module
+- **Direct Registration**: Controllers and services in `kafka/` are registered directly in the main service module (e.g., `IdentityModule`, `ProductModule`)
+
+### Structure
+- **`kafka/kafka.controller.ts`**: Contains Kafka event handlers with `@EventPattern()` or `@MessagePattern()` decorators
+- **`kafka/kafka.service.ts`**: Contains business logic for processing Kafka events
+- **`kafka/dto/`**: Contains DTOs specific to Kafka event payloads (optional)
+
+### Examples
+- ✅ Good: `@EventPattern(KAFKA_TOPICS.IDENTITY_MESSAGE)` - Kafka event consumer
+- ✅ Good: `@MessagePattern(KAFKA_TOPICS.PRODUCT_MESSAGE)` - Kafka message consumer
+- ❌ Bad: `@Get('kafka/status')` - REST API endpoint (should be in `modules/` or `src/`)
+- ❌ Bad: Exporting `KafkaModule` - This directory doesn't export modules
+
 ## Project Architecture
 
 ### Technology Stack

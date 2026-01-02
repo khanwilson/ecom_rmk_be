@@ -1,8 +1,6 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
-import { ApiOperation, ApiTags, ApiBody } from '@nestjs/swagger';
+import { Body, Controller, Get, Post } from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IdentityService } from './identity.service';
-import { KAFKA_TOPICS } from 'utils/kafka.enum';
 
 @ApiTags('identity')
 @Controller()
@@ -42,15 +40,5 @@ export class IdentityController {
     return this.identityService.emitToProduct(body.message || 'Test message', body.data);
   }
 
-  @MessagePattern(KAFKA_TOPICS.PRODUCT_MESSAGE)
-  async handleProductMessage(@Payload() payload: any) {
-    console.log('📨 Identity service received message from Product:', payload);
-    return {
-      success: true,
-      message: 'Message received by Identity service',
-      receivedAt: new Date().toISOString(),
-      payload,
-    };
-  }
 }
 

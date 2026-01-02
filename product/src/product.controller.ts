@@ -1,13 +1,17 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
-import { ApiOperation, ApiTags, ApiBody } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '@ecom-rmk/libs/auth';
+import { KafkaService } from 'kafka/kafka.service';
 import { ProductService } from './product.service';
-import { KAFKA_TOPICS } from 'utils/kafka.enum';
+import { CreateProductDto } from './dto/create-product.dto';
 
 @ApiTags('product')
 @Controller()
 export class ProductController {
-  constructor(private readonly productService: ProductService) {}
+  constructor(
+    private readonly productService: ProductService,
+    private readonly kafkaService: KafkaService,
+  ) { }
 
   @Get()
   @ApiOperation({ summary: 'Get hello message' })
@@ -42,15 +46,54 @@ export class ProductController {
     return this.productService.emitToIdentity(body.message || 'Test message', body.data);
   }
 
-  @MessagePattern(KAFKA_TOPICS.IDENTITY_MESSAGE)
-  async handleIdentityMessage(@Payload() payload: any) {
-    console.log('📨 Product service received message from Identity:', payload);
+  /**
+   * Create Product with Saga Pattern
+   * This endpoint demonstrates distributed transaction using Saga Pattern
+   * Flow: Create Product → Verify Seller → Activate Product (or Rollback)
+   */
+  @Post('create-with-saga')
+  @ApiOperation({
+    summary: 'Create Product with Saga Pattern (Distributed Transaction)',
+    description:
+      'Creates a product and verifies seller identity across services. If verification fails, product creation is rolled back automatically.',
+  })
+  @ApiBody({ type: CreateProductDto })
+  async createProductWithSaga(@Body() dto: CreateProductDto) {
+    return this.kafkaService.createProductWithSaga({
+      name: dto.name,
+      description: dto.description,
+      sku: dto.sku,
+      price: dto.price,
+      type: dto.type,
+      stock: dto.stock,
+      sellerId: dto.sellerId,
+    });
+  }
+
+  /**
+   * Get Saga Status
+   * Check the status of a saga transaction by kafkaId
+   */
+  @Get('saga/:kafkaId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('accessToken')
+  @ApiOperation({ 
+    summary: 'Get Saga status by kafkaId',
+    description: 'Returns the current status and steps of a saga transaction'
+  })
+  async getSagaStatus(@Param('kafkaId') kafkaId: string) {
+    const status = await this.kafkaService.getKafkaStatus(kafkaId);
+    if (!status) {
+      return {
+        success: false,
+        message: `Saga with kafkaId ${kafkaId} not found`,
+      };
+    }
     return {
       success: true,
-      message: 'Message received by Product service',
-      receivedAt: new Date().toISOString(),
-      payload,
+      ...status,
     };
   }
+
 }
 

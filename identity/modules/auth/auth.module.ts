@@ -3,10 +3,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { OtpModule } from 'modules/otp/otp.module';
+import { StatelessJwtStrategy } from '@ecom-rmk/libs/auth';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { JwtStrategy } from './strategies/jwt.strategy';
 import { StringValue } from "ms";
+import { RedisService } from '@ecom-rmk/libs/redis';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { StringValue } from "ms";
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, RedisService, StatelessJwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule { }

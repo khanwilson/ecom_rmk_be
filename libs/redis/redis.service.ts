@@ -1,9 +1,9 @@
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import Redis, { Cluster } from 'ioredis';
 
 @Injectable()
-export class RedisService implements OnModuleInit, OnModuleDestroy {
+export class RedisService {
   private redis: Redis | Cluster;
 
   constructor(private configService: ConfigService) {
@@ -49,20 +49,6 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     this.redis.on('error', (err) => {
       console.error('❌ Redis error:', err);
     });
-  }
-
-  async onModuleInit() {
-    try {
-      await this.redis.ping(() => {
-        console.log('📡 Redis Ping Success');
-      });
-    } catch (error) {
-      console.warn('⚠️ Redis is not ready yet, but will retry in background...');
-    }
-  }
-
-  async onModuleDestroy() {
-    await this.redis.quit();
   }
 
   async get<T>(key: string): Promise<T | null> {

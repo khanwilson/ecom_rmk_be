@@ -307,6 +307,9 @@ services:
         "
     networks:
       - mongodb-replica
+    volumes:
+      - mongodb_replica_config:/data/configdb
+      - mongodb_replica_data:/data/db
     restart: "no"
 
   identity-service:
@@ -335,6 +338,7 @@ services:
     volumes:
       - ./libs:/usr/src/libs
       - ./identity/src:/usr/src/identity/src
+      - ./identity/kafka:/usr/src/identity/kafka
       - ./identity/prisma:/usr/src/identity/prisma
       - ./identity/modules:/usr/src/identity/modules
       - ./identity/utils:/usr/src/identity/utils
@@ -366,6 +370,7 @@ services:
     volumes:
       - ./libs:/usr/src/libs
       - ./product/src:/usr/src/product/src
+      - ./product/kafka:/usr/src/product/kafka
       - ./product/prisma:/usr/src/product/prisma
       - ./product/modules:/usr/src/product/modules
       - ./product/utils:/usr/src/product/utils
@@ -386,6 +391,8 @@ volumes:
   redis5_data:
   redis6_data:
   redis_cluster_data:
+  mongodb_replica_data:
+  mongodb_replica_config:
   mongodb_primary_data:
   mongodb_primary_config:
   mongodb_secondary1_data:

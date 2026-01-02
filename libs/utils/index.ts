@@ -1,3 +1,3 @@
 export * from './parseObjectId';
-export * from './retryConnectKafkaService';
+export * from './retryConnect';
 

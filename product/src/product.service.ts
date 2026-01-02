@@ -4,23 +4,23 @@ import { firstValueFrom } from 'rxjs';
 import { RedisService } from '@ecom-rmk/libs/redis';
 import { ProductStatus } from 'generated/prisma/enums';
 import { prisma } from 'prisma/prisma';
-import { KAFKA_SERVICES, KAFKA_TOPICS } from 'utils/kafka.enum';
-import { retryConnectKafkaService } from '@ecom-rmk/libs/utils';
+import { KAFKA_SERVICES, KAFKA_TOPICS } from '@ecom-rmk/libs/kafka';
+import { retryConnect } from '@ecom-rmk/libs/utils';
 
 @Injectable()
 export class ProductService implements OnModuleInit {
   constructor(
     private readonly redisService: RedisService,
-    @Inject(KAFKA_SERVICES.IDENTITY_SERVICE) private readonly identityClient: ClientKafka,
+    @Inject(KAFKA_SERVICES.PRODUCT_SERVICE) private readonly productClient: ClientKafka,
   ) { }
 
   async onModuleInit() {
-    await retryConnectKafkaService(this.subscribeKafkaTopics.bind(this));
+    await retryConnect('ProductService Kafka', this.subscribeKafkaTopics.bind(this));
   }
 
   async subscribeKafkaTopics(): Promise<void> {
-    this.identityClient.subscribeToResponseOf(KAFKA_TOPICS.IDENTITY_MESSAGE);
-    await this.identityClient.connect();
+    this.productClient.subscribeToResponseOf(KAFKA_TOPICS.HELLO);
+    await this.productClient.connect();
   }
 
   getHello(): string {
@@ -99,11 +99,11 @@ export class ProductService implements OnModuleInit {
     try {
       const payload = {
         message,
-        data: data || { timestamp: Date.now(), from: KAFKA_SERVICES.PRODUCT_SERVICE },
+        data: data || { timestamp: Date.now(), from: 'PRODUCT_SERVICE' },
         timestamp: new Date().toISOString(),
       };
 
-      const result = await firstValueFrom(this.identityClient.send(KAFKA_TOPICS.IDENTITY_MESSAGE, payload));
+      const result = await firstValueFrom(this.productClient.send(KAFKA_TOPICS.HELLO, payload));
 
       return {
         success: true,

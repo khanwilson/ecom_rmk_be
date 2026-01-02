@@ -9,13 +9,12 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard, CurrentUser, JwtPayload } from '@ecom-rmk/libs/auth';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { CurrentIdentity } from './decorators/current-identity.decorator';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -46,28 +45,28 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
+  @ApiBearerAuth('accessToken')
   @ApiOperation({ summary: 'Logout (private)' })
-  async logout(@CurrentIdentity() identity: any) {
-    await this.authService.logout(identity.id);
+  async logout(@CurrentUser() user: JwtPayload) {
+    await this.authService.logout(user.sub);
     return { message: 'Logged out successfully' };
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('accessToken')
   @ApiOperation({ summary: 'Get current identity (private)' })
-  async getMe(@CurrentIdentity() identity: any) {
-    return identity;
+  async getMe(@CurrentUser() user: JwtPayload) {
+    return user;
   }
 
   @Delete('me')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
+  @ApiBearerAuth('accessToken')
   @ApiOperation({ summary: 'Delete account (soft delete, private)' })
-  async deleteAccount(@CurrentIdentity() identity: any) {
-    return this.authService.deleteAccount(identity.id);
+  async deleteAccount(@CurrentUser() user: JwtPayload) {
+    return this.authService.deleteAccount(user.sub);
   }
 
   @Post('forgot-password')

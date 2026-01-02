@@ -1,7 +1,14 @@
+import { StatelessJwtStrategy } from '@ecom-rmk/libs/auth';
+import { KAFKA_SERVICES } from '@ecom-rmk/libs/kafka';
+import { RedisService } from '@ecom-rmk/libs/redis';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { RedisModule } from '@ecom-rmk/libs/redis';
+import { PassportModule } from '@nestjs/passport';
+import { KafkaController } from 'kafka/kafka.controller';
+import { KafkaService } from 'kafka/kafka.service';
+import { StringValue } from 'ms';
 import { ProductController } from './product.controller';
 import { ProductService } from './product.service';
 
@@ -10,10 +17,20 @@ import { ProductService } from './product.service';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    RedisModule,
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
+        signOptions: {
+          expiresIn: configService.get<StringValue>('ACCESS_TOKEN_EXPIRES_IN', '24h'),
+        },
+      }),
+    }),
     ClientsModule.registerAsync([
       {
-        name: 'IDENTITY_SERVICE',
+        name: KAFKA_SERVICES.PRODUCT_SERVICE,
         imports: [ConfigModule],
         useFactory: (configService: ConfigService) => ({
           transport: Transport.KAFKA,
@@ -33,8 +50,8 @@ import { ProductService } from './product.service';
       },
     ]),
   ],
-  controllers: [ProductController],
-  providers: [ProductService],
+  controllers: [ProductController, KafkaController],
+  providers: [ProductService, KafkaService, RedisService, StatelessJwtStrategy],
   exports: [ProductService],
 })
 export class ProductModule { }

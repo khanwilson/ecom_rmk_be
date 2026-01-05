@@ -89,9 +89,9 @@
 - **Issue**: Bun cache distinguishes `.tgz` packages by name, not version
 - **Impact**: Changes to `libs/` may not be reflected if cache is not cleared
 - **Solution**: Each service's `docker-entrypoint.sh` must:
-  - Delete `node_modules` and `bun.lockb` to force fresh install
+  - Delete `node_modules` and `bun.lock` to force fresh install
   - Use `bun install --force` to force reinstall all packages (similar to `yarn install --force`)
-  - Reinstall dependencies when `package.json` or `bun.lockb` changes
+  - Reinstall dependencies when `package.json` or `bun.lock` changes
 
 ### Content Guidelines
 - Contains shared variables and helper functions

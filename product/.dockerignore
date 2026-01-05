@@ -2,8 +2,8 @@
 node_modules
 npm-debug.log
 yarn-error.log
-# bun.lockb will be generated in container
-# bun.lockb
+# bun.lock will be generated in container
+# bun.lock
 
 # Build outputs
 dist

@@ -14,7 +14,7 @@ export enum IdentityStatus {
 export interface JwtPayload {
   sub: string; // identity id
   email: string;
-  phone: string;
+  phoneNumber : string;
   status: IdentityStatus;
   iat?: number; // issued at (automatically added by JWT)
   exp?: number; // expiration (automatically added by JWT)

@@ -1,6 +1,8 @@
 import { handleError } from '@ecom-rmk/libs/common';
 import { RedisService } from '@ecom-rmk/libs/redis';
+import { processPhoneNumber } from '@ecom-rmk/libs/utils';
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException
@@ -42,20 +44,26 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto) {
-    const { email, phone, password } = dto;
+    const { email, phoneNumber, phoneCountry, password } = dto;
 
-    // Check if identity already exists (by email or phone)
+    // Validate and process phone number
+    const phoneInfo = processPhoneNumber(phoneNumber, phoneCountry);
+    if (!phoneInfo) {
+      throw new BadRequestException('Invalid phone number or country code');
+    }
+
+    // Check if identity already exists (by email or phoneNumber)
     const existing = await prisma.identity.findFirst({
       where: {
         OR: [
           { email },
-          { phone },
+          { phoneNumber: phoneInfo.phoneFormatted },
         ],
       },
     });
 
     if (existing) {
-      throw new ConflictException('Identity with this email or phone already exists');
+      throw new ConflictException('Identity with this email or phone number already exists');
     }
 
     // Hash password before transaction
@@ -77,14 +85,16 @@ export class AuthService {
           const identity = await tx.identity.create({
             data: {
               email,
-              phone,
+              phoneNumber: phoneInfo.phoneFormatted,
+              phoneCountry: phoneInfo.phoneCountry,
               passwordHash,
               status: IdentityStatus.AVAILABLE,
             },
             select: {
               id: true,
               email: true,
-              phone: true,
+              phoneNumber: true,
+              phoneCountry: true,
               status: true,
               emailVerified: true,
               createdAt: true,
@@ -138,7 +148,12 @@ export class AuthService {
     }
 
     // Generate tokens
-    const tokens = await this.generateTokens(result.identity.id, email, phone, result.identity.status);
+    const tokens = await this.generateTokens(
+      result.identity.id,
+      email,
+      phoneInfo.phoneFormatted,
+      result.identity.status,
+    );
 
     return {
       ...tokens,
@@ -149,12 +164,12 @@ export class AuthService {
   async login(dto: LoginDto) {
     const { emailOrPhone, password } = dto;
 
-    // Find identity by email or phone
+    // Find identity by email or phoneNumber
     const identity = await prisma.identity.findFirst({
       where: {
         OR: [
           { email: emailOrPhone },
-          { phone: emailOrPhone },
+          { phoneNumber: emailOrPhone },
         ],
       },
     });
@@ -187,8 +202,13 @@ export class AuthService {
     });
 
     // Generate tokens
-    // Note: email and phone are required in schema, so non-null assertion is safe
-    const tokens = await this.generateTokens(identity.id, identity.email!, identity.phone!, identity.status);
+    // Note: email and phoneNumber are required in schema, so non-null assertion is safe
+    const tokens = await this.generateTokens(
+      identity.id,
+      identity.email!,
+      identity.phoneNumber!,
+      identity.status,
+    );
 
     // Store refresh token hash
     const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, this.saltRounds);
@@ -202,7 +222,8 @@ export class AuthService {
       identity: {
         id: identity.id,
         email: identity.email,
-        phone: identity.phone,
+        phoneNumber: identity.phoneNumber,
+        phoneCountry: identity.phoneCountry,
         status: identity.status,
         emailVerified: identity.emailVerified,
       },
@@ -230,8 +251,13 @@ export class AuthService {
       }
 
       // Generate new tokens
-      // Note: email and phone are required in schema, so non-null assertion is safe
-      const tokens = await this.generateTokens(identity.id, identity.email!, identity.phone!, identity.status);
+      // Note: email and phoneNumber are required in schema, so non-null assertion is safe
+      const tokens = await this.generateTokens(
+        identity.id,
+        identity.email!,
+        identity.phoneNumber!,
+        identity.status,
+      );
 
       // Update refresh token hash
       const newRefreshTokenHash = await bcrypt.hash(tokens.refreshToken, this.saltRounds);
@@ -261,7 +287,7 @@ export class AuthService {
       where: {
         OR: [
           { email: emailOrPhone },
-          { phone: emailOrPhone },
+          { phoneNumber: emailOrPhone },
         ],
       },
     });
@@ -317,12 +343,12 @@ export class AuthService {
     return { message: 'Account deleted successfully' };
   }
 
-  private async generateTokens(identityId: string, email: string, phone: string, status: IdentityStatus) {
+  private async generateTokens(identityId: string, email: string, phoneNumber: string, status: IdentityStatus) {
     // Generate new tokens (always generate fresh tokens)
     const payload: JwtPayload = {
       sub: identityId,
       email: email,
-      phone: phone,
+      phone: phoneNumber, // Keep 'phone' in JWT payload for backward compatibility
       status: status as any,
     };
 

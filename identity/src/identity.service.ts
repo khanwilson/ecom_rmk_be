@@ -5,7 +5,7 @@ import { RedisService } from '@ecom-rmk/libs/redis';
 import { IdentityStatus } from 'generated/prisma/enums';
 import { prisma } from 'prisma/prisma';
 import { KAFKA_SERVICES, KAFKA_TOPICS } from '@ecom-rmk/libs/kafka';
-import { retryConnect } from '@ecom-rmk/libs/utils';
+import { processPhoneNumber, retryConnect } from '@ecom-rmk/libs/utils';
 
 @Injectable()
 export class IdentityService implements OnModuleInit {
@@ -24,6 +24,7 @@ export class IdentityService implements OnModuleInit {
   }
 
   getHello(): string {
+    console.log('processPhoneNumber', processPhoneNumber('901234567', 'VN'));
     return 'Hello World!!!!';
   }
 
@@ -61,9 +62,18 @@ export class IdentityService implements OnModuleInit {
   async testMongoDB(): Promise<{ success: boolean; message: string; data?: any }> {
     try {
       // Test MongoDB connection by creating a test record
+      const phoneInfo = processPhoneNumber('901234567', 'VN');
+      if (!phoneInfo) {
+        return {
+          success: false,
+          message: 'Failed to process phone number for test',
+        };
+      }
+
       const testData = {
         email: `test-${Date.now()}@example.com`,
-        phone: '09123456789',
+        phoneNumber: phoneInfo.phoneFormatted,
+        phoneCountry: phoneInfo.phoneCountry,
         passwordHash: 'test-password-hash-' + Date.now(),
         status: IdentityStatus.PENDING, // Using PENDING as default status
       };

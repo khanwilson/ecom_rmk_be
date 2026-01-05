@@ -32,7 +32,8 @@ enum OtpType {
 model Identity {
   id                String         @id @default(auto()) @map("_id") @db.ObjectId
   email             String         @unique
-  phone             String         @unique
+  phoneNumber       String         @unique
+  phoneCountry      String
   passwordHash      String
   refreshTokenHash  String?
   status            IdentityStatus @default(PENDING)

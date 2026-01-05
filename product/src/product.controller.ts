@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '@ecom-rmk/libs/auth';
 import { KafkaService } from 'kafka/kafka.service';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
-
+import { processPhoneNumber } from '@ecom-rmk/libs/utils';
 @ApiTags('product')
 @Controller()
 export class ProductController {
@@ -22,6 +22,8 @@ export class ProductController {
   @Get('test/redis')
   @ApiOperation({ summary: 'Test Redis connection and operations' })
   async testRedis() {
+    console.log('phone number', processPhoneNumber('0901234567', 'VN'));
+    
     return this.productService.testRedis();
   }
 

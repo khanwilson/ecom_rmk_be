@@ -36,7 +36,8 @@ export class KafkaService {
         select: {
           id: true,
           email: true,
-          phone: true,
+          phoneNumber: true,
+          phoneCountry: true,
           status: true,
           emailVerified: true,
         },

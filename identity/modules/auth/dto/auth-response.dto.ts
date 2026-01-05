@@ -11,7 +11,8 @@ export class AuthResponseDto {
   identity: {
     id: string;
     email: string;
-    phone: string;
+    phoneNumber: string;
+    phoneCountry: string;
     status: string;
     emailVerified: boolean;
   };

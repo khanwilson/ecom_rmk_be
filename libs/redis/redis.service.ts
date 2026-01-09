@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import type { ConfigService } from '@nestjs/config';
 import Redis, { Cluster } from 'ioredis';
 
 @Injectable()
@@ -116,7 +116,7 @@ export class RedisService {
   async checkRateLimit(
     key: string,
     limit: number,
-    windowSeconds: number,
+    windowSeconds: number
   ): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
     const current = await this.redis.get(key);
 
@@ -129,7 +129,7 @@ export class RedisService {
       };
     }
 
-    const count = parseInt(current);
+    const count = parseInt(current, 10);
     if (count >= limit) {
       const ttl = await this.ttl(key);
       return {
@@ -195,5 +195,3 @@ export class RedisService {
     return this.redis;
   }
 }
-
-

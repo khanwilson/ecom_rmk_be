@@ -1,0 +1,113 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/generated",
+      "!**/*.lock",
+      "!**/*.lockb",
+      "!**/bun.lockb",
+      "!**/yarn.lock",
+      "!**/package-lock.json",
+      "!**/.next",
+      "!**/build",
+      "!**/.turbo",
+      "!**/coverage",
+      "!**/*.tgz",
+      "!**/docker-compose*.yml",
+      "!**/Dockerfile*",
+      "!**/*.md"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 100,
+    "attributePosition": "auto"
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error",
+        "noUnusedPrivateClassMembers": "warn"
+      },
+      "style": {
+        "useConst": "error",
+        "useExportType": "error",
+        "useImportType": "error",
+        "noNonNullAssertion": "off"
+      },
+      "suspicious": {
+        "noDebugger": "error",
+        "noDoubleEquals": "error",
+        "noDuplicateCase": "error",
+        "noDuplicateClassMembers": "error",
+        "noDuplicateObjectKeys": "error",
+        "noDuplicateParameters": "error",
+        "noEmptyBlockStatements": "error",
+        "noRedeclare": "error",
+        "noExplicitAny": "off",
+        "noNonNullAssertedOptionalChain": "off",
+        "noExtraNonNullAssertion": "off"
+      },
+      "performance": {
+        "noDelete": "error"
+      }
+    }
+  },
+  "javascript": {
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
+    },
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "trailingCommas": "es5",
+      "semicolons": "always",
+      "arrowParentheses": "always",
+      "bracketSpacing": true,
+      "bracketSameLine": false
+    },
+    "globals": []
+  },
+  "json": {
+    "formatter": {
+      "enabled": true
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.ts", "**/*.tsx"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedVariables": "error",
+            "noUnusedImports": "error"
+          }
+        }
+      }
+    }
+  ]
+}

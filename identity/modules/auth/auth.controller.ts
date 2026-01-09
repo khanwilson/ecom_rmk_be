@@ -1,21 +1,21 @@
+import type { JwtPayload } from '@ecom-rmk/libs/auth';
+import { CurrentUser, JwtAuthGuard } from '@ecom-rmk/libs/auth';
 import {
-  Controller,
-  Post,
-  Get,
-  Delete,
   Body,
-  UseGuards,
+  Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
+  Post,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard, CurrentUser } from '@ecom-rmk/libs/auth';
-import type { JwtPayload } from '@ecom-rmk/libs/auth';
-import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { AuthService } from './auth.service';
+import type { ForgotPasswordDto } from './dto/forgot-password.dto';
+import type { LoginDto } from './dto/login.dto';
+import type { RegisterDto } from './dto/register.dto';
+import type { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -84,4 +84,3 @@ export class AuthController {
     return this.authService.resetPassword(dto);
   }
 }
-

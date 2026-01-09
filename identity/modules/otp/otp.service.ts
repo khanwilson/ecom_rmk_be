@@ -1,27 +1,28 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import bcrypt from 'bcrypt';
-import { RedisService } from '@ecom-rmk/libs/redis';
 import { handleError } from '@ecom-rmk/libs/common';
-import { OtpType } from 'generated/prisma/enums';
+import type { RedisService } from '@ecom-rmk/libs/redis';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
+import bcrypt from 'bcrypt';
+import type { OtpType } from 'generated/prisma/enums';
 import { prisma } from 'prisma/prisma';
 @Injectable()
 export class OtpService {
-  private readonly ttlSeconds: number;
+  public readonly ttlSeconds: number;
   private readonly maxPerWindow: number;
   private readonly windowSeconds: number;
   private readonly saltRounds: number;
 
   constructor(
     private readonly redisService: RedisService,
-    private readonly configService: ConfigService,
+    private readonly configService: ConfigService
   ) {
     this.ttlSeconds = this.configService.get<number>('OTP_TTL_SECONDS', 300);
     this.maxPerWindow = this.configService.get<number>('OTP_MAX_PER_WINDOW', 5);
     this.windowSeconds = this.configService.get<number>('OTP_WINDOW_SECONDS', 3600);
     // Parse saltRounds to ensure it's a number (env variables are strings by default)
     const saltRoundsEnv = this.configService.get<string>('BCRYPT_SALT_ROUNDS', '12');
-    this.saltRounds = typeof saltRoundsEnv === 'number' ? saltRoundsEnv : parseInt(saltRoundsEnv, 10) || 12;
+    this.saltRounds =
+      typeof saltRoundsEnv === 'number' ? saltRoundsEnv : parseInt(saltRoundsEnv, 10) || 12;
   }
 
   /**
@@ -40,12 +41,12 @@ export class OtpService {
     const rateLimit = await this.redisService.checkRateLimit(
       rateLimitKey,
       this.maxPerWindow,
-      this.windowSeconds,
+      this.windowSeconds
     );
 
     if (!rateLimit.allowed) {
       throw new BadRequestException(
-        `Too many OTP requests. Please try again after ${Math.ceil((rateLimit.resetAt - Date.now()) / 1000)} seconds`,
+        `Too many OTP requests. Please try again after ${Math.ceil((rateLimit.resetAt - Date.now()) / 1000)} seconds`
       );
     }
 
@@ -57,7 +58,7 @@ export class OtpService {
     const expiredAt = new Date(Date.now() + this.ttlSeconds * 1000);
 
     // Store in database
-    let otpRecord;
+    let otpRecord: any;
     try {
       otpRecord = await prisma.otp.create({
         data: {
@@ -77,6 +78,7 @@ export class OtpService {
     await this.redisService.set(redisKey, otpCode, this.ttlSeconds);
 
     // Send email
+    console.log('Sending OTP to email:', email, otpCode, type);
     // await this.mailerService.sendOtpEmail(email, otpCode, type);
 
     // Increment sent count in Redis
@@ -143,4 +145,3 @@ export class OtpService {
     return null;
   }
 }
-

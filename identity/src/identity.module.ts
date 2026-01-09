@@ -24,9 +24,7 @@ import { IdentityService } from './identity.service';
           options: {
             client: {
               clientId: 'identity-service',
-              brokers: [
-                configService.get<string>('KAFKA_BROKER', 'kafka:9092'),
-              ],
+              brokers: [configService.get<string>('KAFKA_BROKER', 'kafka:9092')],
             },
             consumer: {
               groupId: 'identity-service-consumer',
@@ -43,5 +41,4 @@ import { IdentityService } from './identity.service';
   providers: [IdentityService, KafkaService, RedisService],
   exports: [IdentityService],
 })
-export class IdentityModule { }
-
+export class IdentityModule {}

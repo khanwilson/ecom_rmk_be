@@ -1,21 +1,21 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { ClientKafka } from '@nestjs/microservices';
-import { RedisService } from '@ecom-rmk/libs/redis';
+import { handleError } from '@ecom-rmk/libs/common';
 import {
-  ProductKafkaEvents,
-  ProductCreateInitiatedPayload,
-  ProductCreatedPayload,
-  SellerVerifiedPayload,
-  SellerVerificationFailedPayload,
-  ProductCompensatePayload,
-  SagaStatus,
-  SagaStepStatus,
   KAFKA_SERVICES,
   KAFKA_TOPICS,
+  type ProductCompensatePayload,
+  type ProductCreateInitiatedPayload,
+  ProductKafkaEvents,
+  SagaStatus,
+  SagaStepStatus,
+  type SellerVerificationFailedPayload,
+  type SellerVerifiedPayload,
 } from '@ecom-rmk/libs/kafka';
+import type { RedisService } from '@ecom-rmk/libs/redis';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { ClientKafka } from '@nestjs/microservices';
 import { ProductStatus } from 'generated/prisma/enums';
 import { prisma } from 'prisma/prisma';
-import { handleError } from '@ecom-rmk/libs/common';
+
 // Generate unique kafka ID
 function generateKafkaId(): string {
   return `kafka-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -28,8 +28,8 @@ export class KafkaService {
 
   constructor(
     private readonly redisService: RedisService,
-    @Inject(KAFKA_SERVICES.PRODUCT_SERVICE) private readonly productClient: ClientKafka,
-  ) { }
+    @Inject(KAFKA_SERVICES.PRODUCT_SERVICE) private readonly productClient: ClientKafka
+  ) {}
 
   /**
    * Initiate Product Creation Saga
@@ -113,9 +113,7 @@ export class KafkaService {
         payload: verifyPayload,
       });
 
-      this.logger.log(
-        `📤 Published SELLER_VERIFY_REQUESTED event for kafka: ${kafkaId}`,
-      );
+      this.logger.log(`📤 Published SELLER_VERIFY_REQUESTED event for kafka: ${kafkaId}`);
 
       return {
         kafkaId,
@@ -191,13 +189,9 @@ export class KafkaService {
    * Handle Seller Verification Failure
    * Trigger compensation to rollback product creation
    */
-  async handleSellerVerificationFailed(
-    payload: SellerVerificationFailedPayload,
-  ) {
+  async handleSellerVerificationFailed(payload: SellerVerificationFailedPayload) {
     const { kafkaId, productId, reason } = payload;
-    this.logger.warn(
-      `❌ Seller verification failed for kafka: ${kafkaId}, reason: ${reason}`,
-    );
+    this.logger.warn(`❌ Seller verification failed for kafka: ${kafkaId}, reason: ${reason}`);
 
     // Trigger compensation
     await this.compensate(kafkaId, productId, reason);
@@ -278,4 +272,3 @@ export class KafkaService {
     return kafkaContext || null;
   }
 }
-

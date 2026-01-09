@@ -8,4 +8,3 @@ export enum KAFKA_TOPICS {
 
   PRODUCT_CREATE = 'ecom.product.create',
 }
-

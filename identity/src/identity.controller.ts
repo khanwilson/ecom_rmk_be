@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IdentityService } from './identity.service';
+import type { IdentityService } from './identity.service';
 
 @ApiTags('identity')
 @Controller()
@@ -39,6 +39,4 @@ export class IdentityController {
   async testKafkaEmit(@Body() body: { message?: string; data?: any }) {
     return this.identityService.emitToProduct(body.message || 'Test message', body.data);
   }
-
 }
-

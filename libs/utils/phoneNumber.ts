@@ -1,4 +1,4 @@
-import { parsePhoneNumberFromString, CountryCode } from 'libphonenumber-js';
+import { type CountryCode, parsePhoneNumberFromString } from 'libphonenumber-js';
 
 export interface PhoneNumberInfo {
   phoneFormatted: string;
@@ -16,28 +16,28 @@ export interface PhoneNumberInfo {
  * @example
  * processPhoneNumber('+84901234567', 'VN')
  * returns { phoneFormatted: '+84901234567', phoneCode: '84', phoneNumber: '901234567', phoneCountry: 'VN', isValid: true }
- * 
+ *
  * processPhoneNumber('0901234567', 'VN')
  * returns { phoneFormatted: '+84901234567', phoneCode: '84', phoneNumber: '901234567', phoneCountry: 'VN', isValid: true }
- * 
+ *
  * processPhoneNumber('901234567', 'VN')
  * returns { phoneFormatted: '+84901234567', phoneCode: '84', phoneNumber: '901234567', phoneCountry: 'VN', isValid: true }
- * 
+ *
  * processPhoneNumber('123', 'VN')
  * returns undefined (invalid phone number)
  */
 export function processPhoneNumber(
   phoneNumber: string,
-  phoneCountry: string,
+  phoneCountry: string
 ): PhoneNumberInfo | undefined {
   try {
     const parsed = parsePhoneNumberFromString(
       phoneNumber,
-      phoneCountry.toUpperCase() as CountryCode,
+      phoneCountry.toUpperCase() as CountryCode
     );
 
     if (!parsed || !parsed.isValid()) {
-      return ;
+      return;
     }
 
     return {
@@ -48,6 +48,7 @@ export function processPhoneNumber(
       phoneCountry: parsed.country || phoneCountry.toUpperCase(),
     };
   } catch (error) {
+    console.error('Error processing phone number:', error);
     return undefined;
   }
 }

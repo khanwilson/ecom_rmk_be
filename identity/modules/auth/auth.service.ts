@@ -1,23 +1,23 @@
+import type { JwtPayload, Role } from '@ecom-rmk/libs/auth';
 import { handleError } from '@ecom-rmk/libs/common';
-import { RedisService } from '@ecom-rmk/libs/redis';
+import type { RedisService } from '@ecom-rmk/libs/redis';
 import { processPhoneNumber } from '@ecom-rmk/libs/utils';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
-  UnauthorizedException
+  UnauthorizedException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
+import type { ConfigService } from '@nestjs/config';
+import type { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
 import { IdentityStatus } from 'generated/prisma/enums';
-import { OtpService } from 'modules/otp/otp.service';
+import type { OtpService } from 'modules/otp/otp.service';
 import { prisma } from 'prisma/prisma';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-import { JwtPayload, Role } from '@ecom-rmk/libs/auth';
+import type { ForgotPasswordDto } from './dto/forgot-password.dto';
+import type { LoginDto } from './dto/login.dto';
+import type { RegisterDto } from './dto/register.dto';
+import type { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -31,7 +31,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
-    private readonly otpService: OtpService,
+    private readonly otpService: OtpService
   ) {
     // Parse saltRounds to ensure it's a number (env variables are strings by default)
     const saltRoundsEnv = this.configService.get<string>('BCRYPT_SALT_ROUNDS', '12');
@@ -55,10 +55,7 @@ export class AuthService {
     // Check if identity already exists (by email or phoneNumber)
     const existing = await prisma.identity.findFirst({
       where: {
-        OR: [
-          { email },
-          { phoneNumber: phoneInfo.phoneFormatted },
-        ],
+        OR: [{ email }, { phoneNumber: phoneInfo.phoneFormatted }],
       },
     });
 
@@ -72,12 +69,12 @@ export class AuthService {
     // Generate OTP code and hash before transaction
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const otpHash = await bcrypt.hash(otpCode, this.saltRounds);
-    const ttlSeconds = this.otpService['ttlSeconds'] || 300;
+    const ttlSeconds = this.otpService.ttlSeconds || 300;
     const expiredAt = new Date(Date.now() + ttlSeconds * 1000);
 
     // ATOMIC TRANSACTION: Create Identity + OTP together
     // If any operation fails, entire transaction is rolled back (All or Nothing)
-    let result;
+    let result: any;
     try {
       result = await prisma.$transaction(
         async (tx) => {
@@ -120,15 +117,12 @@ export class AuthService {
         {
           maxWait: 5000, // Maximum time to wait for transaction to start
           timeout: 10000, // Maximum time for transaction to complete
-        },
+        }
       );
     } catch (error: any) {
       // Use centralized Prisma error handler for consistent error responses
       // This ensures all Prisma errors are handled uniformly across the application
-      throw handleError(
-        error,
-        'An unexpected error occurred during registration',
-      );
+      throw handleError(error, 'An unexpected error occurred during registration');
     }
 
     // After transaction commits successfully, handle Redis operations
@@ -154,7 +148,7 @@ export class AuthService {
       email,
       phoneInfo.phoneFormatted,
       result.identity.status,
-      result.identity.roles,
+      result.identity.roles
     );
 
     return {
@@ -172,10 +166,7 @@ export class AuthService {
     // Find identity by email or phoneNumber
     const identity = await prisma.identity.findFirst({
       where: {
-        OR: [
-          { email: emailOrPhone },
-          { phoneNumber: emailOrPhone },
-        ],
+        OR: [{ email: emailOrPhone }, { phoneNumber: emailOrPhone }],
       },
     });
 
@@ -184,7 +175,11 @@ export class AuthService {
     }
 
     // Check if account is locked/banned/deleted
-    const restrictedStatuses: IdentityStatus[] = [IdentityStatus.LOCKED, IdentityStatus.BANNED, IdentityStatus.DELETED];
+    const restrictedStatuses: IdentityStatus[] = [
+      IdentityStatus.LOCKED,
+      IdentityStatus.BANNED,
+      IdentityStatus.DELETED,
+    ];
     if (restrictedStatuses.includes(identity.status)) {
       throw new UnauthorizedException(`Account is ${identity.status.toLowerCase()}`);
     }
@@ -210,10 +205,10 @@ export class AuthService {
     // Note: email and phoneNumber are required in schema, so non-null assertion is safe
     const tokens = await this.generateTokens(
       identity.id,
-      identity.email!,
-      identity.phoneNumber!,
+      identity.email,
+      identity.phoneNumber,
       identity.status,
-      identity.roles as Role[],
+      identity.roles as Role[]
     );
 
     // Store refresh token hash
@@ -261,10 +256,10 @@ export class AuthService {
       // Note: email and phoneNumber are required in schema, so non-null assertion is safe
       const tokens = await this.generateTokens(
         identity.id,
-        identity.email!,
-        identity.phoneNumber!,
+        identity.email,
+        identity.phoneNumber,
         identity.status,
-        identity.roles as Role[],
+        identity.roles as Role[]
       );
 
       // Update refresh token hash
@@ -275,7 +270,7 @@ export class AuthService {
       });
 
       return tokens;
-    } catch (error) {
+    } catch (_error) {
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
@@ -293,10 +288,7 @@ export class AuthService {
 
     const identity = await prisma.identity.findFirst({
       where: {
-        OR: [
-          { email: emailOrPhone },
-          { phoneNumber: emailOrPhone },
-        ],
+        OR: [{ email: emailOrPhone }, { phoneNumber: emailOrPhone }],
       },
     });
 
@@ -351,7 +343,13 @@ export class AuthService {
     return { message: 'Account deleted successfully' };
   }
 
-  private async generateTokens(identityId: string, email: string, phoneNumber: string, status: IdentityStatus, roles: Role[]) {
+  private async generateTokens(
+    identityId: string,
+    email: string,
+    phoneNumber: string,
+    status: IdentityStatus,
+    roles: Role[]
+  ) {
     // Generate new tokens (always generate fresh tokens)
     const payload: JwtPayload = {
       sub: identityId,
@@ -403,4 +401,3 @@ export class AuthService {
     }
   }
 }
-

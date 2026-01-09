@@ -7,4 +7,3 @@ export class ForgotPasswordDto {
   @IsString()
   emailOrPhone: string;
 }
-

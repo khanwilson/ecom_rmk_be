@@ -1,16 +1,16 @@
 import {
   KAFKA_TOPICS,
   ProductKafkaEvents,
-  SellerVerificationFailedPayload,
-  SellerVerifiedPayload,
+  type SellerVerificationFailedPayload,
+  type SellerVerifiedPayload,
 } from '@ecom-rmk/libs/kafka';
 import { Controller } from '@nestjs/common';
 import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
-import { KafkaService } from './kafka.service';
+import type { KafkaService } from './kafka.service';
 
 @Controller('kafka')
 export class KafkaController {
-  constructor(private readonly kafkaService: KafkaService) { }
+  constructor(private readonly kafkaService: KafkaService) {}
 
   /**
    * Handle Message from Identity Service
@@ -35,13 +35,11 @@ export class KafkaController {
 
     switch (eventType) {
       case ProductKafkaEvents.SELLER_VERIFIED:
-        return this.kafkaService.handleSellerVerified(
-          eventPayload as SellerVerifiedPayload,
-        );
+        return this.kafkaService.handleSellerVerified(eventPayload as SellerVerifiedPayload);
 
       case ProductKafkaEvents.SELLER_VERIFICATION_FAILED:
         return this.kafkaService.handleSellerVerificationFailed(
-          eventPayload as SellerVerificationFailedPayload,
+          eventPayload as SellerVerificationFailedPayload
         );
 
       default:
@@ -49,4 +47,3 @@ export class KafkaController {
     }
   }
 }
-

@@ -69,4 +69,3 @@ export interface ProductCompensatePayload {
   reason: string;
   timestamp: string;
 }
-

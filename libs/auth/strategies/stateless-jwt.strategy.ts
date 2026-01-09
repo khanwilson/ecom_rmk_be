@@ -1,13 +1,13 @@
 import { Injectable, Optional, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import type { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { RedisService } from '../../redis/redis.service';
-import { IdentityStatus, JwtPayload } from '../interfaces/jwt-payload.interface';
+import type { RedisService } from '../../redis/redis.service';
+import { IdentityStatus, type JwtPayload } from '../interfaces/jwt-payload.interface';
 
 /**
  * Stateless JWT Strategy with optional Redis cache support
- * 
+ *
  * Flow:
  * 1. Verify JWT signature with JWT_ACCESS_SECRET
  * 2. If RedisService is available:
@@ -17,9 +17,9 @@ import { IdentityStatus, JwtPayload } from '../interfaces/jwt-payload.interface'
  *    - If not found, convert JWT payload to JwtPayload format (with default values)
  * 3. If RedisService is not available:
  *    - Convert JWT payload to JwtPayload format (with default values)
- * 
+ *
  * Always returns JwtPayload (never JwtPayload) for consistent type across all services.
- * 
+ *
  * Note: Identity service should cache identity info in Redis when:
  * - User logs in
  * - User status changes
@@ -30,8 +30,8 @@ import { IdentityStatus, JwtPayload } from '../interfaces/jwt-payload.interface'
 @Injectable()
 export class StatelessJwtStrategy extends PassportStrategy(Strategy) {
   constructor(
-    private readonly configService: ConfigService,
-    @Optional() private readonly redisService?: RedisService,
+    readonly configService: ConfigService,
+    @Optional() private readonly redisService?: RedisService
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -118,4 +118,3 @@ export class StatelessJwtStrategy extends PassportStrategy(Strategy) {
     }
   }
 }
-

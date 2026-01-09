@@ -48,4 +48,3 @@ export interface SagaEvent {
   error?: string;
   timestamp: string;
 }
-

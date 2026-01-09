@@ -33,10 +33,7 @@ export interface PrismaError extends Error {
  * @param message - Default message if error type cannot be determined
  * @returns HttpException appropriate for the error type
  */
-export function handleError(
-  error: any,
-  message: string = '',
-): HttpException {
+export function handleError(error: any, message: string = ''): HttpException {
   console.error(`❌ Got Failed:`, error);
   // Check for unique constraint violations (duplicate entries)
   if (error.code === 'P2002') {
@@ -47,7 +44,7 @@ export function handleError(
       field = error.meta?.target[0];
     }
     return new ConflictException(
-      message || `Record with this ${field} already exists. Request rolled back.`,
+      message || `Record with this ${field} already exists. Request rolled back.`
     );
   }
 
@@ -55,21 +52,21 @@ export function handleError(
   if (error.code === 'P2003') {
     const fieldName = error.meta?.field_name || 'unknown field';
     return new BadRequestException(
-      message || `Invalid reference: ${fieldName}. Request rolled back.`,
+      message || `Invalid reference: ${fieldName}. Request rolled back.`
     );
   }
 
   // Check for record not found
   if (error.code === 'P2025') {
     return new BadRequestException(
-      message || 'The requested record was not found. Request rolled back.',
+      message || 'The requested record was not found. Request rolled back.'
     );
   }
 
   // Check for transaction timeout
   if (error.code === 'P2028' || error.message?.includes('timeout')) {
     return new InternalServerErrorException(
-      message || 'Request timeout. Please try again. All changes have been rolled back.',
+      message || 'Request timeout. Please try again. All changes have been rolled back.'
     );
   }
 
@@ -81,7 +78,7 @@ export function handleError(
     error.message?.includes('connection')
   ) {
     return new InternalServerErrorException(
-      message || 'Database connection error. Please try again later. Request rolled back.',
+      message || 'Database connection error. Please try again later. Request rolled back.'
     );
   }
 
@@ -91,7 +88,6 @@ export function handleError(
   }
 
   return new InternalServerErrorException(
-    `An error occurred while processing your request. Request rolled back. Please try again.`,
+    `An error occurred while processing your request. Request rolled back. Please try again.`
   );
 }
-

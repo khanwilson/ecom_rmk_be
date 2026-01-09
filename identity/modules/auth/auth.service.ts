@@ -17,7 +17,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { JwtPayload } from '@ecom-rmk/libs/auth';
+import { JwtPayload, Role } from '@ecom-rmk/libs/auth';
 
 @Injectable()
 export class AuthService {
@@ -97,6 +97,7 @@ export class AuthService {
               phoneCountry: true,
               status: true,
               emailVerified: true,
+              roles: true,
               createdAt: true,
             },
           });
@@ -153,11 +154,15 @@ export class AuthService {
       email,
       phoneInfo.phoneFormatted,
       result.identity.status,
+      result.identity.roles,
     );
 
     return {
       ...tokens,
-      identity: result.identity,
+      identity: {
+        ...result.identity,
+        roles: result.identity.roles,
+      },
     };
   }
 
@@ -208,6 +213,7 @@ export class AuthService {
       identity.email!,
       identity.phoneNumber!,
       identity.status,
+      identity.roles as Role[],
     );
 
     // Store refresh token hash
@@ -226,6 +232,7 @@ export class AuthService {
         phoneCountry: identity.phoneCountry,
         status: identity.status,
         emailVerified: identity.emailVerified,
+        roles: identity.roles,
       },
     };
   }
@@ -257,6 +264,7 @@ export class AuthService {
         identity.email!,
         identity.phoneNumber!,
         identity.status,
+        identity.roles as Role[],
       );
 
       // Update refresh token hash
@@ -343,12 +351,13 @@ export class AuthService {
     return { message: 'Account deleted successfully' };
   }
 
-  private async generateTokens(identityId: string, email: string, phoneNumber: string, status: IdentityStatus) {
+  private async generateTokens(identityId: string, email: string, phoneNumber: string, status: IdentityStatus, roles: Role[]) {
     // Generate new tokens (always generate fresh tokens)
     const payload: JwtPayload = {
       sub: identityId,
       email: email,
-      phone: phoneNumber, // Keep 'phone' in JWT payload for backward compatibility
+      phoneNumber: phoneNumber, // phone formatted
+      roles: roles,
       status: status as any,
     };
 

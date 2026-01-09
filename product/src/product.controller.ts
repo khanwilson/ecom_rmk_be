@@ -1,17 +1,17 @@
+import { JwtAuthGuard } from '@ecom-rmk/libs/auth';
+import { processPhoneNumber } from '@ecom-rmk/libs/utils';
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@ecom-rmk/libs/auth';
-import { KafkaService } from 'kafka/kafka.service';
-import { ProductService } from './product.service';
+import type { KafkaService } from 'kafka/kafka.service';
 import { CreateProductDto } from './dto/create-product.dto';
-import { processPhoneNumber } from '@ecom-rmk/libs/utils';
+import type { ProductService } from './product.service';
 @ApiTags('product')
 @Controller()
 export class ProductController {
   constructor(
     private readonly productService: ProductService,
-    private readonly kafkaService: KafkaService,
-  ) { }
+    private readonly kafkaService: KafkaService
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get hello message' })
@@ -23,7 +23,7 @@ export class ProductController {
   @ApiOperation({ summary: 'Test Redis connection and operations' })
   async testRedis() {
     console.log('phone number', processPhoneNumber('0901234567', 'VN'));
-    
+
     return this.productService.testRedis();
   }
 
@@ -79,9 +79,9 @@ export class ProductController {
   @Get('saga/:kafkaId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('accessToken')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get Saga status by kafkaId',
-    description: 'Returns the current status and steps of a saga transaction'
+    description: 'Returns the current status and steps of a saga transaction',
   })
   async getSagaStatus(@Param('kafkaId') kafkaId: string) {
     const status = await this.kafkaService.getKafkaStatus(kafkaId);
@@ -96,6 +96,4 @@ export class ProductController {
       ...status,
     };
   }
-
 }
-

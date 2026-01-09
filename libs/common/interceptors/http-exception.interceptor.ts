@@ -1,12 +1,12 @@
 import {
-  CallHandler,
-  ExecutionContext,
+  type CallHandler,
+  type ExecutionContext,
   HttpException,
   HttpStatus,
   Injectable,
-  NestInterceptor,
+  type NestInterceptor,
 } from '@nestjs/common';
-import { Observable, throwError } from 'rxjs';
+import { type Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 export interface ErrorResponse {
@@ -55,9 +55,7 @@ export class HttpExceptionInterceptor implements NestInterceptor {
         };
 
         return throwError(() => new HttpException(errorResponse, status));
-      }),
+      })
     );
   }
 }
-
-

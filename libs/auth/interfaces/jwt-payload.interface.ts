@@ -11,12 +11,19 @@ export enum IdentityStatus {
   PENDING = 'PENDING',
   NAN = 'NAN',
 }
+
+export enum Role {
+  USER = 'USER',
+  ADMIN = 'ADMIN',
+  SELLER = 'SELLER',
+  KOL = 'KOL',
+}
 export interface JwtPayload {
   sub: string; // identity id
   email: string;
-  phoneNumber : string;
+  phoneNumber: string;
   status: IdentityStatus;
+  roles: Role[];
   iat?: number; // issued at (automatically added by JWT)
   exp?: number; // expiration (automatically added by JWT)
 }
-

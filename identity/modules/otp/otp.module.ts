@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
 import { RedisService } from '@ecom-rmk/libs/redis';
+import { Module } from '@nestjs/common';
 import { OtpController } from './otp.controller';
 import { OtpService } from './otp.service';
 
@@ -8,5 +8,4 @@ import { OtpService } from './otp.service';
   providers: [OtpService, RedisService],
   exports: [OtpService],
 })
-export class OtpModule { }
-
+export class OtpModule {}

@@ -1,18 +1,18 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import { ClientKafka } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
-import { RedisService } from '@ecom-rmk/libs/redis';
+import { KAFKA_SERVICES, KAFKA_TOPICS } from '@ecom-rmk/libs/kafka';
+import type { RedisService } from '@ecom-rmk/libs/redis';
+import { processPhoneNumber, retryConnect } from '@ecom-rmk/libs/utils';
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import type { ClientKafka } from '@nestjs/microservices';
 import { IdentityStatus } from 'generated/prisma/enums';
 import { prisma } from 'prisma/prisma';
-import { KAFKA_SERVICES, KAFKA_TOPICS } from '@ecom-rmk/libs/kafka';
-import { processPhoneNumber, retryConnect } from '@ecom-rmk/libs/utils';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class IdentityService implements OnModuleInit {
   constructor(
     private readonly redisService: RedisService,
-    @Inject(KAFKA_SERVICES.IDENTITY_SERVICE) private readonly identityClient: ClientKafka,
-  ) { }
+    @Inject(KAFKA_SERVICES.IDENTITY_SERVICE) private readonly identityClient: ClientKafka
+  ) {}
 
   async onModuleInit() {
     await retryConnect('IdentityService Kafka', this.subscribeKafkaTopics.bind(this));
@@ -74,7 +74,7 @@ export class IdentityService implements OnModuleInit {
         email: `test-${Date.now()}@example.com`,
         phoneNumber: phoneInfo.phoneFormatted,
         phoneCountry: phoneInfo.phoneCountry,
-        passwordHash: 'test-password-hash-' + Date.now(),
+        passwordHash: `test-password-hash-${Date.now()}`,
         status: IdentityStatus.PENDING, // Using PENDING as default status
       };
 
@@ -102,7 +102,10 @@ export class IdentityService implements OnModuleInit {
     }
   }
 
-  async emitToProduct(message: string, data?: any): Promise<{ success: boolean; message: string; data?: any }> {
+  async emitToProduct(
+    message: string,
+    data?: any
+  ): Promise<{ success: boolean; message: string; data?: any }> {
     try {
       const payload = {
         message,
@@ -125,4 +128,3 @@ export class IdentityService implements OnModuleInit {
     }
   }
 }
-

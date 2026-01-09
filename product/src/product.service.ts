@@ -1,18 +1,18 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import { ClientKafka } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
-import { RedisService } from '@ecom-rmk/libs/redis';
+import { KAFKA_SERVICES, KAFKA_TOPICS } from '@ecom-rmk/libs/kafka';
+import type { RedisService } from '@ecom-rmk/libs/redis';
+import { retryConnect } from '@ecom-rmk/libs/utils';
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import type { ClientKafka } from '@nestjs/microservices';
 import { ProductStatus } from 'generated/prisma/enums';
 import { prisma } from 'prisma/prisma';
-import { KAFKA_SERVICES, KAFKA_TOPICS } from '@ecom-rmk/libs/kafka';
-import { retryConnect } from '@ecom-rmk/libs/utils';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class ProductService implements OnModuleInit {
   constructor(
     private readonly redisService: RedisService,
-    @Inject(KAFKA_SERVICES.PRODUCT_SERVICE) private readonly productClient: ClientKafka,
-  ) { }
+    @Inject(KAFKA_SERVICES.PRODUCT_SERVICE) private readonly productClient: ClientKafka
+  ) {}
 
   async onModuleInit() {
     await retryConnect('ProductService Kafka', this.subscribeKafkaTopics.bind(this));
@@ -95,7 +95,10 @@ export class ProductService implements OnModuleInit {
     }
   }
 
-  async emitToIdentity(message: string, data?: any): Promise<{ success: boolean; message: string; data?: any }> {
+  async emitToIdentity(
+    message: string,
+    data?: any
+  ): Promise<{ success: boolean; message: string; data?: any }> {
     try {
       const payload = {
         message,
@@ -118,4 +121,3 @@ export class ProductService implements OnModuleInit {
     }
   }
 }
-

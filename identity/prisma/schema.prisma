@@ -23,6 +23,13 @@ enum IdentityStatus {
   NAN
 }
 
+enum Role {
+  USER
+  SELLER
+  KOL
+  ADMIN
+}
+
 enum OtpType {
   EMAIL_VERIFY
   RESET_PWD
@@ -42,6 +49,7 @@ model Identity {
   failedLoginCount  Int            @default(0)
   lastFailedLoginAt DateTime?
   provider          String         @default("local")
+  roles             Role[]         @default([USER])
   metadata          Json?
   deletedAt         DateTime?
   createdAt         DateTime       @default(now())

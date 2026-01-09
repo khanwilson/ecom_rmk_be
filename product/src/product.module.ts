@@ -8,7 +8,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
 import { KafkaController } from 'kafka/kafka.controller';
 import { KafkaService } from 'kafka/kafka.service';
-import { StringValue } from 'ms';
+import type { StringValue } from 'ms';
 import { ProductController } from './product.controller';
 import { ProductService } from './product.service';
 
@@ -37,9 +37,7 @@ import { ProductService } from './product.service';
           options: {
             client: {
               clientId: 'product-service',
-              brokers: [
-                configService.get<string>('KAFKA_BROKER', 'kafka:9092'),
-              ],
+              brokers: [configService.get<string>('KAFKA_BROKER', 'kafka:9092')],
             },
             consumer: {
               groupId: 'product-service-consumer',
@@ -54,5 +52,4 @@ import { ProductService } from './product.service';
   providers: [ProductService, KafkaService, RedisService, StatelessJwtStrategy],
   exports: [ProductService],
 })
-export class ProductModule { }
-
+export class ProductModule {}

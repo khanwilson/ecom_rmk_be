@@ -3,7 +3,7 @@ import { retryConnect } from '@ecom-rmk/libs/utils';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { type MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ProductModule } from './product.module';
 
@@ -17,7 +17,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-    }),
+    })
   );
 
   // Apply global exception interceptor for consistent error responses
@@ -37,7 +37,7 @@ async function bootstrap() {
         description: 'Enter JWT token',
         in: 'header',
       },
-      'accessToken',
+      'accessToken'
     )
     .addTag('product', 'Product management endpoints')
     .build();
@@ -50,10 +50,7 @@ async function bootstrap() {
   });
 
   // Connect Kafka microservice
-  const kafkaBroker = configService.get<string>(
-    'KAFKA_BROKER',
-    'kafka:9092',
-  );
+  const kafkaBroker = configService.get<string>('KAFKA_BROKER', 'kafka:9092');
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,

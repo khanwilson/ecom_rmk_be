@@ -10,9 +10,9 @@ import {
   type SellerVerificationFailedPayload,
   type SellerVerifiedPayload,
 } from '@ecom-rmk/libs/kafka';
-import type { RedisService } from '@ecom-rmk/libs/redis';
+import { RedisService } from '@ecom-rmk/libs/redis';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { ClientKafka } from '@nestjs/microservices';
+import { ClientKafka } from '@nestjs/microservices';
 import { ProductStatus } from 'generated/prisma/enums';
 import { prisma } from 'prisma/prisma';
 

@@ -1,0 +1,52 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+# bun.lock will be generated in container
+# bun.lock
+
+# Build outputs
+dist
+*.tsbuildinfo
+
+# Prisma generated files (will be generated in container)
+generated
+
+# Environment files
+.env
+.env.*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests
+coverage
+.nyc_output
+*.test.ts
+*.spec.ts
+
+# Logs
+logs
+*.log
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+

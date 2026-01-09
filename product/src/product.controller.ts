@@ -2,9 +2,9 @@ import { JwtAuthGuard } from '@ecom-rmk/libs/auth';
 import { processPhoneNumber } from '@ecom-rmk/libs/utils';
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { KafkaService } from 'kafka/kafka.service';
+import { KafkaService } from 'kafka/kafka.service';
 import { CreateProductDto } from './dto/create-product.dto';
-import type { ProductService } from './product.service';
+import { ProductService } from './product.service';
 @ApiTags('product')
 @Controller()
 export class ProductController {

@@ -8,7 +8,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
 import { KafkaController } from 'kafka/kafka.controller';
 import { KafkaService } from 'kafka/kafka.service';
-import type { StringValue } from 'ms';
+import { StringValue } from 'ms';
 import { ProductController } from './product.controller';
 import { ProductService } from './product.service';
 

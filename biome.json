@@ -55,7 +55,7 @@
       "style": {
         "useConst": "error",
         "useExportType": "error",
-        "useImportType": "error",
+        "useImportType": "off",
         "noNonNullAssertion": "off"
       },
       "suspicious": {

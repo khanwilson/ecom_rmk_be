@@ -374,6 +374,37 @@ services:
       - ./product/utils:/usr/src/product/utils
       - product_node_modules:/usr/src/product/node_modules
 
+  user-service:
+    build:
+      context: .
+      dockerfile: ./user/Dockerfile.dev
+    container_name: user-service
+    env_file:
+      - ./.env
+    ports:
+      - "${USER_PORT}:${USER_PORT}"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      libs-builder:
+        condition: service_started
+      redis-node-1:
+        condition: service_healthy
+      redis-cluster-init:
+        condition: service_started
+      mongodb-primary:
+        condition: service_healthy
+      mongodb-replica-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./libs:/usr/src/libs
+      - ./user/src:/usr/src/user/src
+      - ./user/kafka:/usr/src/user/kafka
+      - ./user/prisma:/usr/src/user/prisma
+      - ./user/modules:/usr/src/user/modules
+      - ./user/utils:/usr/src/user/utils
+      - user_node_modules:/usr/src/user/node_modules
+
 networks:
   mongodb-replica:
     driver: bridge
@@ -399,3 +430,4 @@ volumes:
   mongodb_secondary2_config:
   identity_node_modules:
   product_node_modules:
+  user_node_modules:

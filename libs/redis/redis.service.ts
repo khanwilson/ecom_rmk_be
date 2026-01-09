@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
 import Redis, { Cluster } from 'ioredis';
 
 @Injectable()
 export class RedisService {
   private redis: Redis | Cluster;
 
-  constructor(private configService: ConfigService) {
-    const clusterNodesEnv = this.configService.get<string>('REDIS_CLUSTER_NODES');
+  constructor() {
+    const clusterNodesEnv = process.env.REDIS_CLUSTER_NODES;
 
     const retryStrategy = (times: number) => {
       const delay = Math.min(times * 50, 2000);
@@ -32,8 +31,8 @@ export class RedisService {
         enableReadyCheck: true,
       });
     } else {
-      const host = this.configService.get('REDIS_HOST', 'localhost');
-      const port = this.configService.get('REDIS_PORT', 6379);
+      const host = process.env.REDIS_HOST || 'localhost';
+      const port = parseInt(process.env.REDIS_PORT || '6379', 10);
 
       this.redis = new Redis({
         host,

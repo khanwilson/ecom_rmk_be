@@ -1,6 +1,6 @@
-import type { JwtPayload, Role } from '@ecom-rmk/libs/auth';
+import { JwtPayload, Role } from '@ecom-rmk/libs/auth';
 import { handleError } from '@ecom-rmk/libs/common';
-import type { RedisService } from '@ecom-rmk/libs/redis';
+import { RedisService } from '@ecom-rmk/libs/redis';
 import { processPhoneNumber } from '@ecom-rmk/libs/utils';
 import {
   BadRequestException,
@@ -8,16 +8,16 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
-import type { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
 import { IdentityStatus } from 'generated/prisma/enums';
-import type { OtpService } from 'modules/otp/otp.service';
+import { OtpService } from 'modules/otp/otp.service';
 import { prisma } from 'prisma/prisma';
-import type { ForgotPasswordDto } from './dto/forgot-password.dto';
-import type { LoginDto } from './dto/login.dto';
-import type { RegisterDto } from './dto/register.dto';
-import type { ResetPasswordDto } from './dto/reset-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {

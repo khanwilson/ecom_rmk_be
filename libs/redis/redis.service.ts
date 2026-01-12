@@ -41,10 +41,6 @@ export class RedisService {
       });
     }
 
-    this.redis.on('connect', () => {
-      console.log('📡 Redis connected');
-    });
-
     this.redis.on('error', (err) => {
       console.error('❌ Redis error:', err);
     });

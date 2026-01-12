@@ -1,4 +1,5 @@
-import { JwtPayload, Role } from '@ecom-rmk/libs/auth';
+import type { JwtPayload } from '@ecom-rmk/libs/auth';
+import { Role } from '@ecom-rmk/libs/auth';
 import { handleError } from '@ecom-rmk/libs/common';
 import { RedisService } from '@ecom-rmk/libs/redis';
 import { processPhoneNumber } from '@ecom-rmk/libs/utils';

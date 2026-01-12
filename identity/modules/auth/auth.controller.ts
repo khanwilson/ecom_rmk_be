@@ -1,4 +1,5 @@
-import { CurrentUser, JwtAuthGuard, JwtPayload } from '@ecom-rmk/libs/auth';
+import type { JwtPayload } from '@ecom-rmk/libs/auth';
+import { CurrentUser, JwtAuthGuard } from '@ecom-rmk/libs/auth';
 import {
   Body,
   Controller,

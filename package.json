@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "docker:build": "docker-compose -f docker-compose.dev.yml down && docker-compose -f docker-compose.dev.yml up -d --build",
-    "docker:services-rebuild": "docker-compose -f docker-compose.dev.yml stop libs-builder identity-service product-service user-service && docker-compose -f docker-compose.dev.yml rm -f libs-builder identity-service product-service user-service && docker-compose -f docker-compose.dev.yml up -d --build libs-builder identity-service product-service user-service",
+    "docker:services-rebuild": "docker-compose -f docker-compose.dev.yml stop libs-builder identity-service product-service user-service && docker-compose -f docker-compose.dev.yml rm -f libs-builder identity-service product-service user-service && docker-compose -f docker-compose.dev.yml build --no-cache libs-builder identity-service product-service user-service && docker-compose -f docker-compose.dev.yml up -d libs-builder identity-service product-service user-service",
     "docker:services-restart": "docker-compose -f docker-compose.dev.yml restart libs-builder identity-service product-service user-service",
     "prepare": "simple-git-hooks",
     "lint": "biome check .",

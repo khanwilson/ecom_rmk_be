@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL_SHOP")
+}
+
+enum ShopStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+  VERIFIED
+}
+
+model Shop {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  ownerId     String     @unique @db.ObjectId // Identity service user id (Seller only)
+  name        String
+  slug        String     @unique
+  description String?
+  logo        String?
+  coverImage  String?
+  status      ShopStatus @default(PENDING_VERIFICATION)
+  rating      Float      @default(0)
+  totalSales  Int        @default(0)
+  metadata    Json?
+  deletedAt   DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  categories   ShopCategory[]
+  settings     ShopSettings?
+  verification ShopVerification?
+
+  @@index([status])
+  @@map("Shop")
+}
+
+model ShopCategory {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  shopId      String   @db.ObjectId
+  parentId    String?  @db.ObjectId
+  name        String
+  slug        String
+  description String?
+  image       String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shop     Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  parent   ShopCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children ShopCategory[] @relation("CategoryHierarchy")
+
+  @@unique([shopId, slug])
+  @@index([shopId])
+  @@index([parentId])
+  @@index([isActive])
+  @@map("ShopCategory")
+}
+
+model ShopSettings {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  shopId                String   @unique @db.ObjectId
+  autoAcceptOrder       Boolean  @default(false)
+  shippingPolicy        String?
+  returnPolicy          String?
+  warrantyPolicy        String?
+  minOrderValue         Float?
+  freeShippingThreshold Float?
+  metadata              Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@map("ShopSettings")
+}
+
+model ShopVerification {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  shopId          String    @unique @db.ObjectId
+  isVerified      Boolean   @default(false)
+  verifiedAt      DateTime?
+  documents       Json?
+  rejectionReason String?
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@map("ShopVerification")
+}

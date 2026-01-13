@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "user",
+      "name": "shop",
       "dependencies": {
         "@ecom-rmk/libs": "file:../libs/ecom-rmk-libs-1.0.0.tgz",
         "@nestjs/common": "^11.0.1",

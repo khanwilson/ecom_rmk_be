@@ -6,7 +6,7 @@ import {
 } from '@ecom-rmk/libs/kafka';
 import { Controller } from '@nestjs/common';
 import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
-import type { KafkaService } from './kafka.service';
+import { KafkaService } from './kafka.service';
 
 @Controller('kafka')
 export class KafkaController {

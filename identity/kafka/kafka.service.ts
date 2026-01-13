@@ -7,7 +7,7 @@ import {
   type SellerVerifyRequestedPayload,
 } from '@ecom-rmk/libs/kafka';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { ClientKafka } from '@nestjs/microservices';
+import { ClientKafka } from '@nestjs/microservices';
 import { IdentityStatus } from 'generated/prisma/enums';
 import { prisma } from 'prisma/prisma';
 

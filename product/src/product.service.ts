@@ -1,8 +1,8 @@
 import { KAFKA_SERVICES, KAFKA_TOPICS } from '@ecom-rmk/libs/kafka';
-import type { RedisService } from '@ecom-rmk/libs/redis';
+import { RedisService } from '@ecom-rmk/libs/redis';
 import { retryConnect } from '@ecom-rmk/libs/utils';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
-import type { ClientKafka } from '@nestjs/microservices';
+import { ClientKafka } from '@nestjs/microservices';
 import { ProductStatus } from 'generated/prisma/enums';
 import { prisma } from 'prisma/prisma';
 import { firstValueFrom } from 'rxjs';

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { IdentityService } from './identity.service';
+import { IdentityService } from './identity.service';
 
 @ApiTags('identity')
 @Controller()

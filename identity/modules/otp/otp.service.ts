@@ -1,9 +1,9 @@
 import { handleError } from '@ecom-rmk/libs/common';
-import type { RedisService } from '@ecom-rmk/libs/redis';
+import { RedisService } from '@ecom-rmk/libs/redis';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import bcrypt from 'bcrypt';
-import type { OtpType } from 'generated/prisma/enums';
+import { OtpType } from 'generated/prisma/enums';
 import { prisma } from 'prisma/prisma';
 @Injectable()
 export class OtpService {

@@ -9,8 +9,8 @@ import { PassportModule } from '@nestjs/passport';
 import { KafkaController } from 'kafka/kafka.controller';
 import { KafkaService } from 'kafka/kafka.service';
 import { StringValue } from 'ms';
-import { ProductController } from './product.controller';
-import { ProductService } from './product.service';
+import { UserController } from './user.controller';
+import { UserService } from './user.service';
 
 @Module({
   imports: [
@@ -30,17 +30,17 @@ import { ProductService } from './product.service';
     }),
     ClientsModule.registerAsync([
       {
-        name: KAFKA_SERVICES.PRODUCT_SERVICE,
+        name: KAFKA_SERVICES.USER_SERVICE,
         imports: [ConfigModule],
         useFactory: (configService: ConfigService) => ({
           transport: Transport.KAFKA,
           options: {
             client: {
-              clientId: 'product-service',
+              clientId: 'user-service',
               brokers: [configService.get<string>('KAFKA_BROKER', 'kafka:9092')],
             },
             consumer: {
-              groupId: 'product-service-consumer',
+              groupId: 'user-service-consumer',
             },
           },
         }),
@@ -48,8 +48,8 @@ import { ProductService } from './product.service';
       },
     ]),
   ],
-  controllers: [ProductController, KafkaController],
-  providers: [ProductService, KafkaService, RedisService, StatelessJwtStrategy],
-  exports: [ProductService],
+  controllers: [UserController, KafkaController],
+  providers: [UserService, KafkaService, RedisService, StatelessJwtStrategy],
+  exports: [UserService],
 })
-export class ProductModule {}
+export class UserModule {}

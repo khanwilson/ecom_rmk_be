@@ -18,7 +18,8 @@ export enum Role {
   SELLER = 'SELLER',
   KOL = 'KOL',
 }
-export interface JwtPayload {
+
+export type JwtPayload = {
   sub: string; // identity id
   email: string;
   phoneNumber: string;
@@ -26,4 +27,4 @@ export interface JwtPayload {
   roles: Role[];
   iat?: number; // issued at (automatically added by JWT)
   exp?: number; // expiration (automatically added by JWT)
-}
+};

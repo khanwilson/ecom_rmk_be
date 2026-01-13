@@ -1,8 +1,7 @@
 import { Injectable, Optional, UnauthorizedException } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import type { RedisService } from '../../redis/redis.service';
+import { RedisService } from '../../redis/redis.service';
 import { IdentityStatus, type JwtPayload } from '../interfaces/jwt-payload.interface';
 
 /**
@@ -29,14 +28,16 @@ import { IdentityStatus, type JwtPayload } from '../interfaces/jwt-payload.inter
  */
 @Injectable()
 export class StatelessJwtStrategy extends PassportStrategy(Strategy) {
-  constructor(
-    readonly configService: ConfigService,
-    @Optional() private readonly redisService?: RedisService
-  ) {
+  constructor(@Optional() private readonly redisService?: RedisService) {
+    const jwtSecret = process.env.JWT_ACCESS_SECRET;
+    if (!jwtSecret) {
+      throw new Error('JWT_ACCESS_SECRET environment variable is required');
+    }
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
+      secretOrKey: jwtSecret,
     });
     this.redisService = redisService;
   }

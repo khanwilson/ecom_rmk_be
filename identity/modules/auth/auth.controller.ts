@@ -15,6 +15,8 @@ import { AuthService } from './auth.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterKolDto } from './dto/register-kol.dto';
+import { RegisterSellerDto } from './dto/register-seller.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('auth')
@@ -82,5 +84,31 @@ export class AuthController {
   @ApiOperation({ summary: 'Reset password with OTP (public)' })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
+  }
+
+  @Post('register-seller')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('accessToken')
+  @ApiOperation({
+    summary: 'Register as Seller (private)',
+    description:
+      'Register current user as a Seller. This will add SELLER role and trigger shop creation.',
+  })
+  async registerSeller(@CurrentUser() user: JwtPayload, @Body() dto: RegisterSellerDto) {
+    return this.authService.registerSeller(user.sub, dto);
+  }
+
+  @Post('register-kol')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('accessToken')
+  @ApiOperation({
+    summary: 'Register as KOL (private)',
+    description:
+      'Register current user as a KOL. This will add KOL role and trigger storefront creation (when service is ready).',
+  })
+  async registerKol(@CurrentUser() user: JwtPayload, @Body() dto: RegisterKolDto) {
+    return this.authService.registerKol(user.sub, dto);
   }
 }

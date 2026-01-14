@@ -23,7 +23,6 @@ import {
   UpdateShopDto,
 } from 'modules/shop/dto';
 import { ShopService } from './shop.service';
-
 @ApiTags('shop')
 @Controller('shop')
 export class ShopController {

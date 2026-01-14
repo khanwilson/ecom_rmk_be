@@ -37,7 +37,73 @@ export class ShopService implements OnModuleInit {
   // ==================== SHOP MANAGEMENT ====================
 
   /**
+   * Create shop from Kafka event (triggered by Identity service when user registers as Seller)
+   * This is called internally, not from REST API
+   */
+  async createShopFromEvent(data: {
+    ownerId: string;
+    name: string;
+    description?: string;
+    logo?: string;
+    coverImage?: string;
+  }) {
+    // Check if user already has a shop (shouldn't happen, but safety check)
+    const existingShop = await prisma.shop.findUnique({
+      where: { ownerId: data.ownerId },
+    });
+
+    if (existingShop) {
+      console.log('[ShopService] Shop already exists for owner:', data.ownerId);
+      return existingShop;
+    }
+
+    // Generate unique slug from shop name
+    const slug = await this.generateUniqueSlug(data.name);
+
+    // Create shop with default settings and verification
+    const shop = await prisma.shop.create({
+      data: {
+        ownerId: data.ownerId,
+        name: data.name,
+        slug,
+        description: data.description,
+        logo: data.logo,
+        coverImage: data.coverImage,
+        status: ShopStatus.PENDING_VERIFICATION,
+        settings: {
+          create: {
+            autoAcceptOrder: false,
+          },
+        },
+        verification: {
+          create: {
+            isVerified: false,
+          },
+        },
+      },
+      include: {
+        settings: true,
+        verification: true,
+      },
+    });
+
+    console.log('[ShopService] Shop created from event:', shop.id);
+
+    // Emit SHOP_CREATED event (for other services if needed)
+    this.shopClient.emit(KAFKA_TOPICS.SHOP_CREATED, {
+      shopId: shop.id,
+      ownerId: shop.ownerId,
+      name: shop.name,
+      slug: shop.slug,
+      createdAt: shop.createdAt,
+    });
+
+    return shop;
+  }
+
+  /**
    * Register a new shop for the current user (become a Seller)
+   * @deprecated Use Identity service's register-seller API instead
    */
   async registerShop(ownerId: string, dto: RegisterShopDto) {
     // Check if user already has a shop

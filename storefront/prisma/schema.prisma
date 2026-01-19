@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL_STOREFRONT")
+}
+
+enum StorefrontStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+  VERIFIED
+}
+
+model Storefront {
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  ownerId        String           @unique @db.ObjectId // Identity service user id (KOL)
+  name           String
+  slug           String           @unique  // URL with ID: example.com/shop/6964cb64fbeebaf2a1cfad2f URL with slug: example.com/shop/nike-vietnam
+  description    String?
+  logo           String?
+  coverImage     String?
+  status         StorefrontStatus @default(PENDING_VERIFICATION)
+  commissionRate Float            @default(0) // Affiliate commission rate (%)
+  totalEarnings  Float            @default(0)
+  totalSales     Int              @default(0)
+  metadata       Json?
+  deletedAt      DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  products   StorefrontProduct[]
+  categories StorefrontCategory[]
+  settings   StorefrontSettings?
+
+  @@index([status])
+  @@map("Storefront")
+}
+
+model StorefrontProduct {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  storefrontId      String   @db.ObjectId
+  productId         String   @db.ObjectId // Reference to Product service
+  shopId            String   @db.ObjectId // Reference to Shop service (origin shop)
+  categoryId        String?  @db.ObjectId // StorefrontCategory id
+  customTitle       String? // KOL's custom title
+  customDescription String? // KOL's custom description/review
+  customImage       String? // KOL's custom image
+  commissionRate    Float? // Override storefront commission rate
+  isActive          Boolean  @default(true)
+  order             Int      @default(0)
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  storefront Storefront          @relation(fields: [storefrontId], references: [id], onDelete: Cascade)
+  category   StorefrontCategory? @relation(fields: [categoryId], references: [id])
+
+  @@unique([storefrontId, productId])
+  @@index([storefrontId])
+  @@index([productId])
+  @@index([shopId])
+  @@index([categoryId])
+  @@index([isActive])
+  @@map("StorefrontProduct")
+}
+
+model StorefrontCategory {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  storefrontId String   @db.ObjectId
+  parentId     String?  @db.ObjectId
+  name         String
+  slug         String
+  description  String?
+  image        String?
+  order        Int      @default(0)
+  isActive     Boolean  @default(true)
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  storefront Storefront           @relation(fields: [storefrontId], references: [id], onDelete: Cascade)
+  parent     StorefrontCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children   StorefrontCategory[] @relation("CategoryHierarchy")
+  products   StorefrontProduct[]
+
+  @@unique([storefrontId, slug])
+  @@index([storefrontId])
+  @@index([parentId])
+  @@index([isActive])
+  @@map("StorefrontCategory")
+}
+
+model StorefrontSettings {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  storefrontId       String   @unique @db.ObjectId
+  socialLinks        Json? // { instagram, tiktok, youtube, facebook, etc. }
+  bio                String?
+  showEarnings       Boolean  @default(false)
+  autoAcceptProducts Boolean  @default(false)
+  minCommissionRate  Float? // Minimum commission rate to accept
+  metadata           Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  storefront Storefront @relation(fields: [storefrontId], references: [id], onDelete: Cascade)
+
+  @@map("StorefrontSettings")
+}

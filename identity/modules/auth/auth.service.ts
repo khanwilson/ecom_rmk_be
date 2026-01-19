@@ -1,16 +1,19 @@
 import type { JwtPayload } from '@ecom-rmk/libs/auth';
 import { Role } from '@ecom-rmk/libs/auth';
 import { handleError } from '@ecom-rmk/libs/common';
+import { KAFKA_SERVICES, KAFKA_TOPICS } from '@ecom-rmk/libs/kafka';
 import { RedisService } from '@ecom-rmk/libs/redis';
 import { processPhoneNumber } from '@ecom-rmk/libs/utils';
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { ClientKafka } from '@nestjs/microservices';
 import bcrypt from 'bcrypt';
 import { IdentityStatus } from 'generated/prisma/enums';
 import { OtpService } from 'modules/otp/otp.service';
@@ -18,6 +21,8 @@ import { prisma } from 'prisma/prisma';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterKolDto } from './dto/register-kol.dto';
+import { RegisterSellerDto } from './dto/register-seller.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
@@ -32,7 +37,9 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
-    private readonly otpService: OtpService
+    private readonly otpService: OtpService,
+    @Inject(KAFKA_SERVICES.IDENTITY_SERVICE)
+    private readonly kafkaClient: ClientKafka
   ) {
     // Parse saltRounds to ensure it's a number (env variables are strings by default)
     const saltRoundsEnv = this.configService.get<string>('BCRYPT_SALT_ROUNDS', '12');
@@ -342,6 +349,115 @@ export class AuthService {
     });
 
     return { message: 'Account deleted successfully' };
+  }
+
+  /**
+   * Register current user as SELLER
+   * - Adds SELLER role to identity
+   * - Emits Kafka event for Shop service to create shop
+   */
+  async registerSeller(identityId: string, dto: RegisterSellerDto) {
+    // Get current identity
+    const identity = await prisma.identity.findUnique({
+      where: { id: identityId },
+    });
+
+    if (!identity) {
+      throw new BadRequestException('Identity not found');
+    }
+
+    // Check if already a seller
+    if (identity.roles.includes(Role.SELLER as any)) {
+      throw new ConflictException('User is already registered as a Seller');
+    }
+
+    // Check account status
+    if (identity.status !== IdentityStatus.AVAILABLE) {
+      throw new BadRequestException('Account is not in available status');
+    }
+
+    // Add SELLER role
+    const updatedRoles = [...identity.roles, Role.SELLER];
+    await prisma.identity.update({
+      where: { id: identityId },
+      data: { roles: updatedRoles as any },
+    });
+
+    // Emit Kafka event for Shop service to create shop
+    const eventPayload = {
+      identityId: identity.id,
+      email: identity.email,
+      phoneNumber: identity.phoneNumber,
+      shop: {
+        name: dto.shopName,
+        description: dto.shopDescription,
+        logo: dto.shopLogo,
+        coverImage: dto.shopCoverImage,
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    this.kafkaClient.emit(KAFKA_TOPICS.IDENTITY_SELLER_REGISTERED, eventPayload);
+
+    return {
+      message: 'Successfully registered as Seller. Shop is being created.',
+      roles: updatedRoles,
+    };
+  }
+
+  /**
+   * Register current user as KOL
+   * - Adds KOL role to identity
+   * - Emits Kafka event for Storefront service to create storefront (TODO: not yet implemented)
+   */
+  async registerKol(identityId: string, dto: RegisterKolDto) {
+    // Get current identity
+    const identity = await prisma.identity.findUnique({
+      where: { id: identityId },
+    });
+
+    if (!identity) {
+      throw new BadRequestException('Identity not found');
+    }
+
+    // Check if already a KOL
+    if (identity.roles.includes(Role.KOL as any)) {
+      throw new ConflictException('User is already registered as a KOL');
+    }
+
+    // Check account status
+    if (identity.status !== IdentityStatus.AVAILABLE) {
+      throw new BadRequestException('Account is not in available status');
+    }
+
+    // Add KOL role
+    const updatedRoles = [...identity.roles, Role.KOL];
+    await prisma.identity.update({
+      where: { id: identityId },
+      data: { roles: updatedRoles as any },
+    });
+
+    // Emit Kafka event for Storefront service to create storefront
+    // TODO: Storefront service not yet implemented - event will be consumed later
+    const eventPayload = {
+      identityId: identity.id,
+      email: identity.email,
+      phoneNumber: identity.phoneNumber,
+      storefront: {
+        name: dto.storefrontName,
+        description: dto.storefrontDescription,
+        logo: dto.storefrontLogo,
+        coverImage: dto.storefrontCoverImage,
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    this.kafkaClient.emit(KAFKA_TOPICS.IDENTITY_KOL_REGISTERED, eventPayload);
+
+    return {
+      message: 'Successfully registered as KOL. Storefront will be created when service is ready.',
+      roles: updatedRoles,
+    };
   }
 
   private async generateTokens(

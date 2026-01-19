@@ -5,7 +5,15 @@ import {
 } from '@ecom-rmk/libs/kafka';
 import { Controller } from '@nestjs/common';
 import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
+import { Role } from 'generated/prisma/enums';
 import { KafkaService } from './kafka.service';
+
+// Saga rollback event payloads
+interface CreationFailedPayload {
+  identityId: string;
+  reason: string;
+  timestamp: string;
+}
 
 @Controller('kafka')
 export class KafkaController {
@@ -41,5 +49,31 @@ export class KafkaController {
       default:
         console.log(`Unknown kafka event type: ${eventType}`);
     }
+  }
+
+  /**
+   * Saga: Handle Shop creation failure - rollback SELLER registration
+   */
+  @EventPattern(KAFKA_TOPICS.SHOP_CREATE_FAILED)
+  async handleShopCreationFailed(@Payload() payload: CreationFailedPayload) {
+    console.log('[Kafka] Received SHOP_CREATE_FAILED event:', payload.identityId);
+    return this.kafkaService.handleRoleRegistrationFailed(
+      payload.identityId,
+      Role.SELLER,
+      payload.reason
+    );
+  }
+
+  /**
+   * Saga: Handle Storefront creation failure - rollback KOL registration
+   */
+  @EventPattern(KAFKA_TOPICS.STOREFRONT_CREATE_FAILED)
+  async handleStorefrontCreationFailed(@Payload() payload: CreationFailedPayload) {
+    console.log('[Kafka] Received STOREFRONT_CREATE_FAILED event:', payload.identityId);
+    return this.kafkaService.handleRoleRegistrationFailed(
+      payload.identityId,
+      Role.KOL,
+      payload.reason
+    );
   }
 }

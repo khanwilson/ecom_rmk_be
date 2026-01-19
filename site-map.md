@@ -4,7 +4,8 @@
 
 Hệ thống e-commerce microservices với kiến trúc tương tự Shopee, hỗ trợ:
 - Multi-role: 1 tài khoản có thể là Buyer, Seller, KOL
-- Shop management: Mỗi Seller/KOL có 1 shop
+- Shop management: Mỗi Seller có 1 Shop để bán hàng
+- Storefront management: Mỗi KOL có 1 Storefront để bán affiliate
 - Inventory management: Shop inventory → Warehouse → Customer
 - Order flow: Cart → Order → Payment (30min timeout) → Shipping
 - Return flow: Customer → Warehouse → Shop
@@ -12,77 +13,76 @@ Hệ thống e-commerce microservices với kiến trúc tương tự Shopee, h�
 ## Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         API Gateway / Load Balancer                         │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-        ┌───────────────────────────┼───────────────────────────┐
-        │                           │                           │
-┌───────▼────────┐         ┌────────▼─────────┐        ┌────────▼───────────┐
-│ Identity Svc   │         │   User Svc       │        │   Shop Svc         │
-│                │         │                  │        │                    │
-│ Collections:   │         │ Collections:     │        │ Collections:       │
-│ - Identity     │         │ - User           │        │ - Shop             │
-│ - OTP          │         │ - UserAddress    │        │ - ShopSettings     │
-│                │         │ - UserPreference │        │ - ShopVerification │
-└───────┬────────┘         └────────┬─────────┘        └───────┬────────────┘
-        │                           │                          │
-        └───────────────────────────┼──────────────────────────┘
-                                    │
-        ┌───────────────────────────┼───────────────────────────────┐
-        │                           │                               │
-┌───────▼──────────┐         ┌──────▼─────────────┐        ┌────────▼───────┐
-│ Product Svc      │         │InventoryShop       │        │   Cart Svc     │
-│                  │         │     Svc            │        │                │
-│ Collections:     │         │                    │        │ Collections:   │
-│ - Product        │         │ Collections:       │        │ - Cart         │
-│ - ProductCategory│         │ - InventoryShop    │        │ - CartItem     │
-│ - ProductVariant │         │ - InventoryMovement│        │                │
-│ - ProductImage   │         │                    │        │                │
-└───────┬──────────┘         └───────┬────────────┘        └───────┬────────┘
-        │                            │                             │
-        └────────────────────────────┼─────────────────────────────┘
-                                     │
-        ┌────────────────────────────┼─────────────────────────────┐
-        │                            │                             │
-┌───────▼────────┐         ┌─────────▼───────────┐        ┌────────▼───────┐
-│   Order Svc    │         │  Payment Svc        │        │ Promotion Svc  │
-│                │         │                     │        │                │
-│ Collections:   │         │ Collections:        │        │ Collections:   │
-│ - Order        │         │ - Payment           │        │ - Promotion    │
-│ - OrderItem    │         │ - PaymentMethod     │        │ - Voucher      │
-│ - OrderTracking│         │ - PaymentTransaction│        │ - Campaign     │
-│                │         │                     │        │ - FlashSale    │
-└───────┬────────┘         └────────┬────────────┘        └───────┬────────┘
-        │                           │                             │
-        └───────────────────────────┼─────────────────────────────┘
-                                    │
-        ┌───────────────────────────┼─────────────────────────────────┐
-        │                           │                                 │
-┌───────▼────────────┐         ┌────▼────────────────┐        ┌───────▼───────────┐
-│ Warehouse Svc      │         │InventoryWarehouse   │        │ Shipping Svc      │
-│                    │         │     Svc             │        │                   │
-│ Collections:       │         │                     │        │ Collections:      │
-│ - Warehouse        │         │ Collections:        │        │ - Shipping        │
-│ - WarehouseLocation│         │ - InventoryWarehouse│        │ - ShippingMethod  │
-│                    │         │ - WarehouseMovement │        │ - ShippingTracking│
-└───────┬────────────┘         └───────┬─────────────┘        └───────┬───────────┘
-        │                              │                              │
-        └──────────────────────────────┼──────────────────────────────┘
-                                       │
-                    ┌──────────────────┴────────────┐
-                    │                               │
-            ┌───────▼────────┐            ┌─────────▼──────┐
-            │     Redis      │            │     Kafka      │
-            │   (Cache/Pub)  │            │   (Events)     │
-            └────────────────┘            └────────────────┘
-                    │                               │
-                    └───────────────┬───────────────┘
-                                    │
-                            ┌───────▼─────────┐
-                            │    MongoDB      │
-                            │  (Databases)    │
-                            └─────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   API Gateway / Load Balancer                                   │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+                                              │
+        ┌─────────────────┬───────────────────┼───────────────────┬─────────────────┐
+        │                 │                   │                   │                 │
+┌───────▼────────┐ ┌──────▼───────┐ ┌─────────▼─────────┐ ┌───────▼───────┐ ┌───────▼────────────┐
+│ Identity Svc   │ │  User Svc    │ │    Shop Svc       │ │Storefront Svc │ │   Product Svc      │
+│                │ │              │ │    (Seller)       │ │ (KOL Aff)     │ │                    │
+│ Collections:   │ │ Collections: │ │ Collections:      │ │ Collections:  │ │ Collections:       │
+│ - Identity     │ │ - User       │ │ - Shop            │ │ - Storefront  │ │ - Product          │
+│ - OTP          │ │ - UserAddr   │ │ - ShopSettings    │ │ - SFProduct   │ │ - ProductCategory  │
+│                │ │ - UserPref   │ │ - ShopVerify      │ │ - SFCategory  │ │ - ProductVariant   │
+│                │ │              │ │ - ShopCategory    │ │ - SFSettings  │ │ - ProductImage     │
+└───────┬────────┘ └──────┬───────┘ └─────────┬─────────┘ └───────┬───────┘ └────────┬───────────┘
+        │                 │                   │                   │                  │
+        └─────────────────┴───────────────────┼───────────────────┴──────────────────┘
+                                              │
+        ┌─────────────────────────────────────┼─────────────────────────────────────┐
+        │                                     │                                     │
+┌───────▼──────────────┐         ┌────────────▼────────────┐        ┌───────────────▼───────┐
+│ InventoryShop Svc    │         │       Cart Svc          │        │     Order Svc         │
+│                      │         │                         │        │                       │
+│ Collections:         │         │ Collections:            │        │ Collections:          │
+│ - InventoryShop      │         │ - Cart                  │        │ - Order               │
+│ - InventoryMovement  │         │ - CartItem              │        │ - OrderItem           │
+│                      │         │                         │        │ - OrderTracking       │
+└───────┬──────────────┘         └────────────┬────────────┘        └───────────┬───────────┘
+        │                                     │                                 │
+        └─────────────────────────────────────┼─────────────────────────────────┘
+                                              │
+        ┌─────────────────────────────────────┼─────────────────────────────────┐
+        │                                     │                                 │
+┌───────▼────────────┐         ┌──────────────▼──────────────┐        ┌─────────▼─────────┐
+│   Payment Svc      │         │      Promotion Svc          │        │  Warehouse Svc    │
+│                    │         │                             │        │                   │
+│ Collections:       │         │ Collections:                │        │ Collections:      │
+│ - Payment          │         │ - Promotion                 │        │ - Warehouse       │
+│ - PaymentMethod    │         │ - Voucher                   │        │ - WarehouseLoc    │
+│ - PaymentTxn       │         │ - Campaign, FlashSale       │        │                   │
+└───────┬────────────┘         └──────────────┬──────────────┘        └─────────┬─────────┘
+        │                                     │                                 │
+        └─────────────────────────────────────┼─────────────────────────────────┘
+                                              │
+        ┌─────────────────────────────────────┼─────────────────────────────────┐
+        │                                     │                                 │
+┌───────▼────────────────┐         ┌──────────▼──────────┐        ┌─────────────▼─────────┐
+│InventoryWarehouse Svc  │         │    Shipping Svc     │        │                       │
+│                        │         │                     │        │                       │
+│ Collections:           │         │ Collections:        │        │                       │
+│ - InventoryWarehouse   │         │ - Shipping          │        │                       │
+│ - WarehouseMovement    │         │ - ShippingMethod    │        │                       │
+│                        │         │ - ShippingTracking  │        │                       │
+└───────┬────────────────┘         └──────────┬──────────┘        └───────────────────────┘
+        │                                     │                                 │
+        └─────────────────────────────────────┼─────────────────────────────────┘
+                                              │
+                              ┌───────────────┴───────────────┐
+                              │                               │
+                      ┌───────▼────────┐            ┌─────────▼──────┐
+                      │     Redis      │            │     Kafka      │
+                      │   (Cache/Pub)  │            │   (Events)     │
+                      └────────────────┘            └────────────────┘
+                              │                               │
+                              └───────────────┬───────────────┘
+                                              │
+                                      ┌───────▼─────────┐
+                                      │    MongoDB      │
+                                      │  (Databases)    │
+                                      └─────────────────┘
 ```
 
 ## Service Details
@@ -103,14 +103,24 @@ Hệ thống e-commerce microservices với kiến trúc tương tự Shopee, h�
   - `UserPreference`: User settings, notifications preferences
 
 ### 3. Shop Service
-**Purpose**: Shop management (1 User = 1 Shop for Seller/KOL)
+**Purpose**: Shop management for Sellers (1 Seller = 1 Shop)
 - **Database**: `DATABASE_URL_SHOP`
 - **Collections**:
   - `Shop`: Shop info (name, description, logo, ownerId)
+  - `ShopCategory`: Product categories for shop (hierarchical)
   - `ShopSettings`: Shop configuration, policies
   - `ShopVerification`: Verification status, documents
 
-### 4. Product Service
+### 4. Storefront Service
+**Purpose**: Storefront management for KOLs to sell affiliate products (1 KOL = 1 Storefront)
+- **Database**: `DATABASE_URL_STOREFRONT`
+- **Collections**:
+  - `Storefront`: Storefront info (name, description, logo, ownerId, commissionRate)
+  - `StorefrontProduct`: Products curated by KOL from various shops (productId, shopId, customDescription)
+  - `StorefrontCategory`: KOL's custom product categories
+  - `StorefrontSettings`: Storefront configuration
+
+### 6. Product Service
 **Purpose**: Product catalog management
 - **Database**: `DATABASE_URL_PRODUCT`
 - **Collections**:
@@ -119,21 +129,21 @@ Hệ thống e-commerce microservices với kiến trúc tương tự Shopee, h�
   - `ProductVariant`: Sizes, colors, SKUs
   - `ProductImage`: Product images
 
-### 5. Inventory Shop Service
+### 7. Inventory Shop Service
 **Purpose**: Stock management at shop level
 - **Database**: `DATABASE_URL_INVENTORY_SHOP`
 - **Collections**:
   - `InventoryShop`: Stock quantity per shop/product/variant
   - `InventoryMovement`: Stock movement logs (in/out/reserved)
 
-### 6. Cart Service
+### 8. Cart Service
 **Purpose**: Shopping cart management
 - **Database**: `DATABASE_URL_CART`
 - **Collections**:
   - `Cart`: User cart (one per user)
   - `CartItem`: Items in cart (product, variant, quantity)
 
-### 7. Order Service
+### 9. Order Service
 **Purpose**: Order management & lifecycle
 - **Database**: `DATABASE_URL_ORDER`
 - **Collections**:
@@ -141,7 +151,7 @@ Hệ thống e-commerce microservices với kiến trúc tương tự Shopee, h�
   - `OrderItem`: Order items (product, variant, quantity, price)
   - `OrderTracking`: Order status change history
 
-### 8. Payment Service
+### 10. Payment Service
 **Purpose**: Payment processing
 - **Database**: `DATABASE_URL_PAYMENT`
 - **Collections**:
@@ -149,7 +159,7 @@ Hệ thống e-commerce microservices với kiến trúc tương tự Shopee, h�
   - `PaymentMethod`: Available payment methods
   - `PaymentTransaction`: Payment transaction logs
 
-### 9. Promotion Service
+### 11. Promotion Service
 **Purpose**: Discounts, vouchers, campaigns
 - **Database**: `DATABASE_URL_PROMOTION`
 - **Collections**:
@@ -158,21 +168,21 @@ Hệ thống e-commerce microservices với kiến trúc tương tự Shopee, h�
   - `Campaign`: Marketing campaigns
   - `FlashSale`: Flash sale events
 
-### 10. Warehouse Service
+### 12. Warehouse Service
 **Purpose**: Warehouse & location management
 - **Database**: `DATABASE_URL_WAREHOUSE`
 - **Collections**:
   - `Warehouse`: Warehouse info (name, address, type)
   - `WarehouseLocation`: Storage locations within warehouse
 
-### 11. Inventory Warehouse Service
+### 13. Inventory Warehouse Service
 **Purpose**: Stock management at warehouse level
 - **Database**: `DATABASE_URL_INVENTORY_WAREHOUSE`
 - **Collections**:
   - `InventoryWarehouse`: Stock quantity per warehouse/product
   - `WarehouseMovement`: Stock movement between warehouses
 
-### 12. Shipping Service
+### 14. Shipping Service
 **Purpose**: Shipping & logistics management
 - **Database**: `DATABASE_URL_SHIPPING`
 - **Collections**:
@@ -381,21 +391,15 @@ enum ShopStatus {
   VERIFIED
 }
 
-enum ShopType {
-  SELLER
-  KOL
-}
-
 model Shop {
   id          String     @id @default(auto()) @map("_id") @db.ObjectId
-  ownerId     String     @unique @db.ObjectId
+  ownerId     String     @unique @db.ObjectId // Identity service user id (Seller)
   name        String
-  slug        String     @unique
+  slug        String     @unique  // URL with ID: example.com/shop/6964cb64fbeebaf2a1cfad2f URL with slug: example.com/shop/nike-vietnam
   description String?
   logo        String?
   coverImage  String?
   status      ShopStatus @default(PENDING_VERIFICATION)
-  type        ShopType   @default(SELLER)
   rating      Float      @default(0)
   totalSales  Int        @default(0)
   metadata    Json?
@@ -403,13 +407,37 @@ model Shop {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
+  categories    ShopCategory[]
   settings      ShopSettings?
   verification  ShopVerification?
 
-  @@index([ownerId])
   @@index([status])
-  @@index([slug])
   @@map("Shop")
+}
+
+model ShopCategory {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  shopId      String   @db.ObjectId
+  parentId    String?  @db.ObjectId
+  name        String
+  slug        String
+  description String?
+  image       String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shop     Shop             @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  parent   ShopCategory?    @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children ShopCategory[]   @relation("CategoryHierarchy")
+
+  @@unique([shopId, slug])
+  @@index([shopId])
+  @@index([parentId])
+  @@index([isActive])
+  @@map("ShopCategory")
 }
 
 model ShopSettings {
@@ -431,15 +459,15 @@ model ShopSettings {
 }
 
 model ShopVerification {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  shopId        String    @unique @db.ObjectId
-  isVerified    Boolean   @default(false)
-  verifiedAt    DateTime?
-  documents     Json?
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  shopId          String    @unique @db.ObjectId
+  isVerified      Boolean   @default(false)
+  verifiedAt      DateTime?
+  documents       Json?
   rejectionReason String?
-  metadata      Json?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
@@ -447,7 +475,126 @@ model ShopVerification {
 }
 ```
 
-### 4. Product Service Schema
+### 4. Storefront Service Schema
+**File**: `storefront/prisma/schema.prisma`
+
+```prisma
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL_STOREFRONT")
+}
+
+enum StorefrontStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+  VERIFIED
+}
+
+model Storefront {
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  ownerId        String           @unique @db.ObjectId // Identity service user id (KOL)
+  name           String
+  slug           String           @unique  // URL with ID: example.com/shop/6964cb64fbeebaf2a1cfad2f URL with slug: example.com/shop/nike-vietnam
+  description    String?
+  logo           String?
+  coverImage     String?
+  status         StorefrontStatus @default(PENDING_VERIFICATION)
+  commissionRate Float            @default(0) // Affiliate commission rate (%)
+  totalEarnings  Float            @default(0)
+  totalSales     Int              @default(0)
+  metadata       Json?
+  deletedAt      DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  products   StorefrontProduct[]
+  categories StorefrontCategory[]
+  settings   StorefrontSettings?
+
+  @@index([status])
+  @@map("Storefront")
+}
+
+model StorefrontProduct {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  storefrontId      String   @db.ObjectId
+  productId         String   @db.ObjectId // Reference to Product service
+  shopId            String   @db.ObjectId // Reference to Shop service (origin shop)
+  categoryId        String?  @db.ObjectId // StorefrontCategory id
+  customTitle       String?  // KOL's custom title
+  customDescription String?  // KOL's custom description/review
+  customImage       String?  // KOL's custom image
+  commissionRate    Float?   // Override storefront commission rate
+  isActive          Boolean  @default(true)
+  order             Int      @default(0)
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  storefront Storefront          @relation(fields: [storefrontId], references: [id], onDelete: Cascade)
+  category   StorefrontCategory? @relation(fields: [categoryId], references: [id])
+
+  @@unique([storefrontId, productId])
+  @@index([storefrontId])
+  @@index([productId])
+  @@index([shopId])
+  @@index([categoryId])
+  @@index([isActive])
+  @@map("StorefrontProduct")
+}
+
+model StorefrontCategory {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  storefrontId String   @db.ObjectId
+  parentId     String?  @db.ObjectId
+  name         String
+  slug         String
+  description  String?
+  image        String?
+  order        Int      @default(0)
+  isActive     Boolean  @default(true)
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  storefront Storefront          @relation(fields: [storefrontId], references: [id], onDelete: Cascade)
+  parent     StorefrontCategory? @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children   StorefrontCategory[] @relation("CategoryHierarchy")
+  products   StorefrontProduct[]
+
+  @@unique([storefrontId, slug])
+  @@index([storefrontId])
+  @@index([parentId])
+  @@index([isActive])
+  @@map("StorefrontCategory")
+}
+
+model StorefrontSettings {
+  id                   String   @id @default(auto()) @map("_id") @db.ObjectId
+  storefrontId         String   @unique @db.ObjectId
+  socialLinks          Json?    // { instagram, tiktok, youtube, facebook, etc. }
+  bio                  String?
+  showEarnings         Boolean  @default(false)
+  autoAcceptProducts   Boolean  @default(false)
+  minCommissionRate    Float?   // Minimum commission rate to accept
+  metadata             Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  storefront Storefront @relation(fields: [storefrontId], references: [id], onDelete: Cascade)
+
+  @@map("StorefrontSettings")
+}
+```
+
+### 6. Product Service Schema
 **File**: `product/prisma/schema.prisma`
 
 ```prisma
@@ -559,7 +706,7 @@ model ProductImage {
 }
 ```
 
-### 5. Inventory Shop Service Schema
+### 7. Inventory Shop Service Schema
 **File**: `inventory-shop/prisma/schema.prisma`
 
 ```prisma
@@ -621,7 +768,7 @@ model InventoryMovement {
 }
 ```
 
-### 6. Cart Service Schema
+### 8. Cart Service Schema
 **File**: `cart/prisma/schema.prisma`
 
 ```prisma
@@ -665,7 +812,7 @@ model CartItem {
 }
 ```
 
-### 7. Order Service Schema
+### 9. Order Service Schema
 **File**: `order/prisma/schema.prisma`
 
 ```prisma
@@ -762,7 +909,7 @@ model OrderTracking {
 }
 ```
 
-### 8. Payment Service Schema
+### 10. Payment Service Schema
 **File**: `payment/prisma/schema.prisma`
 
 ```prisma
@@ -849,7 +996,7 @@ model PaymentTransaction {
 }
 ```
 
-### 9. Promotion Service Schema
+### 11. Promotion Service Schema
 **File**: `promotion/prisma/schema.prisma`
 
 ```prisma
@@ -965,7 +1112,7 @@ model FlashSale {
 }
 ```
 
-### 10. Warehouse Service Schema
+### 12. Warehouse Service Schema
 **File**: `warehouse/prisma/schema.prisma`
 
 ```prisma
@@ -1037,7 +1184,7 @@ model WarehouseLocation {
 }
 ```
 
-### 11. Inventory Warehouse Service Schema
+### 13. Inventory Warehouse Service Schema
 **File**: `inventory-warehouse/prisma/schema.prisma`
 
 ```prisma
@@ -1103,7 +1250,7 @@ model WarehouseMovement {
 }
 ```
 
-### 12. Shipping Service Schema
+### 14. Shipping Service Schema
 **File**: `shipping/prisma/schema.prisma`
 
 ```prisma
@@ -1203,10 +1350,11 @@ model ShippingTracking {
 
 ## Summary
 
-### Total Collections: 35
+### Total Collections: 39
 - **Identity Service**: 2 collections
 - **User Service**: 3 collections
-- **Shop Service**: 3 collections
+- **Shop Service**: 4 collections (Seller only)
+- **Storefront Service**: 4 collections (KOL affiliate)
 - **Product Service**: 4 collections
 - **Inventory Shop Service**: 2 collections
 - **Cart Service**: 2 collections
@@ -1219,10 +1367,12 @@ model ShippingTracking {
 
 ### Key Features
 - Multi-role support (USER/SELLER/KOL/ADMIN)
-- 1 User = 1 Shop for Seller/KOL
+- 1 Seller = 1 Shop (sell own products)
+- 1 KOL = 1 Storefront (sell affiliate products from various shops)
 - Inventory management at shop and warehouse levels
 - Order flow with 30min payment timeout
 - Return flow support
 - Shipping tracking through multiple warehouses
 - Comprehensive promotion system
+- Affiliate commission tracking for KOLs
 

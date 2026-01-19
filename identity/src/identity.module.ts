@@ -1,10 +1,9 @@
 import { KAFKA_SERVICES } from '@ecom-rmk/libs/kafka';
 import { RedisService } from '@ecom-rmk/libs/redis';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { KafkaController } from 'kafka/kafka.controller';
-import { KafkaService } from 'kafka/kafka.service';
+import { KafkaModule } from 'kafka/kafka.module';
 import { AuthModule } from 'modules/auth/auth.module';
 import { OtpModule } from 'modules/otp/otp.module';
 import { IdentityController } from './identity.controller';
@@ -36,9 +35,10 @@ import { IdentityService } from './identity.service';
     ]),
     AuthModule,
     OtpModule,
+    forwardRef(() => KafkaModule),
   ],
-  controllers: [IdentityController, KafkaController],
-  providers: [IdentityService, KafkaService, RedisService],
+  controllers: [IdentityController],
+  providers: [IdentityService, RedisService],
   exports: [IdentityService],
 })
 export class IdentityModule {}

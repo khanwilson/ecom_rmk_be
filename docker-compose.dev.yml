@@ -405,6 +405,67 @@ services:
       - ./user/utils:/usr/src/user/utils
       - user_node_modules:/usr/src/user/node_modules
 
+  shop-service:
+    build:
+      context: .
+      dockerfile: ./shop/Dockerfile.dev
+    container_name: shop-service
+    env_file:
+      - ./.env
+    ports:
+      - "${SHOP_PORT}:${SHOP_PORT}"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      libs-builder:
+        condition: service_started
+      redis-node-1:
+        condition: service_healthy
+      redis-cluster-init:
+        condition: service_started
+      mongodb-primary:
+        condition: service_healthy
+      mongodb-replica-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./libs:/usr/src/libs
+      - ./shop/src:/usr/src/shop/src
+      - ./shop/kafka:/usr/src/shop/kafka
+      - ./shop/prisma:/usr/src/shop/prisma
+      - ./shop/modules:/usr/src/shop/modules
+      - ./shop/utils:/usr/src/shop/utils
+      - shop_node_modules:/usr/src/shop/node_modules
+
+  storefront-service:
+    build:
+      context: .
+      dockerfile: ./storefront/Dockerfile.dev
+    container_name: storefront-service
+    env_file:
+      - ./.env
+    ports:
+      - "${STOREFRONT_PORT}:${STOREFRONT_PORT}"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      libs-builder:
+        condition: service_started
+      redis-node-1:
+        condition: service_healthy
+      redis-cluster-init:
+        condition: service_started
+      mongodb-primary:
+        condition: service_healthy
+      mongodb-replica-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./libs:/usr/src/libs
+      - ./storefront/src:/usr/src/storefront/src
+      - ./storefront/kafka:/usr/src/storefront/kafka
+      - ./storefront/prisma:/usr/src/storefront/prisma
+      - ./storefront/modules:/usr/src/storefront/modules
+      - storefront_node_modules:/usr/src/storefront/node_modules
+
 networks:
   mongodb-replica:
     driver: bridge
@@ -431,3 +492,5 @@ volumes:
   identity_node_modules:
   product_node_modules:
   user_node_modules:
+  shop_node_modules:
+  storefront_node_modules:

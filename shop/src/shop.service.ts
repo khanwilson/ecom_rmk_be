@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { ShopStatus } from 'generated/prisma/enums';
+import { ShopCreateInput } from 'generated/prisma/models';
 import {
   CreateCategoryDto,
   RegisterShopDto,
@@ -40,13 +41,7 @@ export class ShopService implements OnModuleInit {
    * Create shop from Kafka event (triggered by Identity service when user registers as Seller)
    * This is called internally, not from REST API
    */
-  async createShopFromEvent(data: {
-    ownerId: string;
-    name: string;
-    description?: string;
-    logo?: string;
-    coverImage?: string;
-  }) {
+  async createShopFromEvent(data: ShopCreateInput) {
     // Check if user already has a shop (shouldn't happen, but safety check)
     const existingShop = await prisma.shop.findUnique({
       where: { ownerId: data.ownerId },
@@ -85,17 +80,6 @@ export class ShopService implements OnModuleInit {
         settings: true,
         verification: true,
       },
-    });
-
-    console.log('[ShopService] Shop created from event:', shop.id);
-
-    // Emit SHOP_CREATED event (for other services if needed)
-    this.shopClient.emit(KAFKA_TOPICS.SHOP_CREATED, {
-      shopId: shop.id,
-      ownerId: shop.ownerId,
-      name: shop.name,
-      slug: shop.slug,
-      createdAt: shop.createdAt,
     });
 
     return shop;
@@ -143,15 +127,6 @@ export class ShopService implements OnModuleInit {
         settings: true,
         verification: true,
       },
-    });
-
-    // Emit Kafka event for shop.created to notify Identity service to add SELLER role
-    this.shopClient.emit(KAFKA_TOPICS.SHOP_CREATED, {
-      shopId: shop.id,
-      ownerId: shop.ownerId,
-      name: shop.name,
-      slug: shop.slug,
-      createdAt: shop.createdAt,
     });
 
     return shop;

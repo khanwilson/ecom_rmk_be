@@ -5,13 +5,13 @@
   "private": true,
   "scripts": {
     "docker:build": "docker-compose -f docker-compose.dev.yml down && docker-compose -f docker-compose.dev.yml up -d --build",
-    "docker:services-rebuild": "docker-compose -f docker-compose.dev.yml stop libs-builder identity-service product-service user-service shop-service && docker-compose -f docker-compose.dev.yml rm -f libs-builder identity-service product-service user-service shop-service && docker-compose -f docker-compose.dev.yml build --no-cache libs-builder identity-service product-service user-service shop-service && docker-compose -f docker-compose.dev.yml up -d libs-builder identity-service product-service user-service shop-service",
-    "docker:services-restart": "docker-compose -f docker-compose.dev.yml restart libs-builder identity-service product-service user-service shop-service",
+    "docker:services-rebuild": "docker-compose -f docker-compose.dev.yml stop libs-builder identity-service product-service user-service shop-service storefront-service && docker-compose -f docker-compose.dev.yml rm -f libs-builder identity-service product-service user-service shop-service storefront-service && docker-compose -f docker-compose.dev.yml build --no-cache libs-builder identity-service product-service user-service shop-service storefront-service && docker-compose -f docker-compose.dev.yml up -d libs-builder identity-service product-service user-service shop-service storefront-service",
+    "docker:services-restart": "docker-compose -f docker-compose.dev.yml restart libs-builder identity-service product-service user-service shop-service storefront-service",
     "prepare": "simple-git-hooks",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
-    "typecheck": "cd libs && bunx tsc --noEmit && cd ../identity && bunx tsc --noEmit && cd ../product && bunx tsc --noEmit && cd ../user && bunx tsc --noEmit && cd ../shop && bunx tsc --noEmit",
+    "typecheck": "cd libs && bunx tsc --noEmit && cd ../identity && bunx tsc --noEmit && cd ../product && bunx tsc --noEmit && cd ../user && bunx tsc --noEmit && cd ../shop && bunx tsc --noEmit && cd ../storefront && bunx tsc --noEmit",
     "pre-commit": "bun run lint && bun run typecheck"
   },
   "keywords": [

@@ -8,8 +8,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
 import { KafkaModule } from 'kafka/kafka.module';
 import { StringValue } from 'ms';
-import { ShopController } from './shop.controller';
-import { ShopService } from './shop.service';
+import { StorefrontController } from './storefront.controller';
+import { StorefrontService } from './storefront.service';
 
 @Module({
   imports: [
@@ -29,17 +29,17 @@ import { ShopService } from './shop.service';
     }),
     ClientsModule.registerAsync([
       {
-        name: KAFKA_SERVICES.SHOP_SERVICE,
+        name: KAFKA_SERVICES.STOREFRONT_SERVICE,
         imports: [ConfigModule],
         useFactory: (configService: ConfigService) => ({
           transport: Transport.KAFKA,
           options: {
             client: {
-              clientId: 'shop-service',
+              clientId: 'storefront-service',
               brokers: [configService.get<string>('KAFKA_BROKER', 'kafka:9092')],
             },
             consumer: {
-              groupId: 'shop-service-consumer',
+              groupId: 'storefront-service-consumer',
             },
           },
         }),
@@ -48,8 +48,8 @@ import { ShopService } from './shop.service';
     ]),
     forwardRef(() => KafkaModule),
   ],
-  controllers: [ShopController],
-  providers: [ShopService, RedisService, StatelessJwtStrategy],
-  exports: [ShopService],
+  controllers: [StorefrontController],
+  providers: [StorefrontService, RedisService, StatelessJwtStrategy],
+  exports: [StorefrontService],
 })
-export class ShopModule {}
+export class StorefrontModule {}

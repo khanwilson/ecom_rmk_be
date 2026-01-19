@@ -24,18 +24,11 @@ export class KafkaController {
   @EventPattern(KAFKA_TOPICS.IDENTITY_SELLER_REGISTERED)
   async handleSellerRegistered(@Payload() data: IdentitySellerRegisteredEvent) {
     console.log('[Kafka] Received IDENTITY_SELLER_REGISTERED event:', data.identityId);
-    try {
-      const shop = await this.kafkaService.handleSellerRegistered({
-        identityId: data.identityId,
-        shop: data.shop,
-      });
+    const shop = await this.kafkaService.handleSellerRegistered({
+      identityId: data.identityId,
+      shop: data.shop,
+    });
 
-      console.log('[KafkaController] Shop created successfully:', shop.id);
-      return shop;
-    } catch (error) {
-      console.error('[KafkaController] Failed to create shop:', error);
-      // Log but don't throw - event processing should be resilient
-      // TODO: Consider adding retry mechanism or dead letter queue
-    }
+    return shop;
   }
 }

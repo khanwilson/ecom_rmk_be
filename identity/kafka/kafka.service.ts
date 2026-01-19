@@ -8,16 +8,14 @@ import {
 } from '@ecom-rmk/libs/kafka';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
-import { IdentityStatus } from 'generated/prisma/enums';
+import { IdentityStatus, Role } from 'generated/prisma/enums';
 import { prisma } from 'prisma/prisma';
 
 @Injectable()
 export class KafkaService {
   private readonly logger = new Logger(KafkaService.name);
 
-  constructor(
-    @Inject(KAFKA_SERVICES.IDENTITY_SERVICE) private readonly identityClient: ClientKafka
-  ) {}
+  constructor(@Inject(KAFKA_SERVICES.IDENTITY_SERVICE) private readonly kafkaClient: ClientKafka) {}
 
   /**
    * Handle Seller Verification Request
@@ -103,7 +101,7 @@ export class KafkaService {
       timestamp: new Date().toISOString(),
     };
 
-    this.identityClient.emit(KAFKA_TOPICS.PRODUCT_CREATE, {
+    this.kafkaClient.emit(KAFKA_TOPICS.PRODUCT_CREATE, {
       eventType: ProductKafkaEvents.SELLER_VERIFIED,
       payload,
     });
@@ -128,11 +126,62 @@ export class KafkaService {
       timestamp: new Date().toISOString(),
     };
 
-    this.identityClient.emit(KAFKA_TOPICS.PRODUCT_CREATE, {
+    this.kafkaClient.emit(KAFKA_TOPICS.PRODUCT_CREATE, {
       eventType: ProductKafkaEvents.SELLER_VERIFICATION_FAILED,
       payload,
     });
 
     this.logger.log(`📤 Published SELLER_VERIFICATION_FAILED event for kafka: ${kafkaId}`);
+  }
+
+  /**
+   * Saga: Handle role registration failure - rollback identity
+   * If identity only has the failed role + USER, soft delete the identity
+   * Otherwise, just remove the failed role
+   */
+  async handleRoleRegistrationFailed(identityId: string, role: 'SELLER' | 'KOL', reason: string) {
+    this.logger.warn(`🔄 Saga rollback: ${role} registration failed for identity ${identityId}`);
+    this.logger.warn(`   Reason: ${reason}`);
+
+    try {
+      const identity = await prisma.identity.findUnique({
+        where: { id: identityId },
+        select: { id: true, roles: true, email: true },
+      });
+
+      if (!identity) {
+        this.logger.error(`❌ Identity not found for rollback: ${identityId}`);
+        return;
+      }
+
+      const roleToRemove = role === 'SELLER' ? Role.SELLER : Role.KOL;
+      const remainingRoles = identity.roles.filter((r) => r !== roleToRemove);
+
+      // If only USER role remains (or no roles), soft delete the identity
+      if (
+        remainingRoles.length === 0 ||
+        (remainingRoles.length === 1 && remainingRoles[0] === Role.USER)
+      ) {
+        await prisma.identity.update({
+          where: { id: identityId },
+          data: {
+            status: IdentityStatus.DELETED,
+            deletedAt: new Date(),
+          },
+        });
+        this.logger.log(`🗑️ Saga: Soft deleted identity ${identityId} (${identity.email})`);
+      } else {
+        // Remove only the failed role
+        await prisma.identity.update({
+          where: { id: identityId },
+          data: { roles: remainingRoles },
+        });
+        this.logger.log(
+          `🔄 Saga: Removed ${role} role from identity ${identityId}, remaining roles: ${remainingRoles.join(', ')}`
+        );
+      }
+    } catch (error) {
+      this.logger.error(`❌ Saga rollback failed for identity ${identityId}:`, error);
+    }
   }
 }

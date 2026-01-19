@@ -1,0 +1,28 @@
+# Development Dockerfile for Storefront Service
+# Use official Bun image (see all versions at https://hub.docker.com/r/oven/bun/tags)
+FROM oven/bun:1
+
+# Destination path of COPY and WORKDIR
+WORKDIR /usr/src/storefront
+
+# Install dependencies for Prisma
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+# Copy libs source code and build package
+COPY libs/ /usr/src/libs/
+WORKDIR /usr/src/libs
+RUN bun install && bun pack:publish
+
+# Return to service directory and copy package files
+WORKDIR /usr/src/storefront
+# Copy all service files
+COPY storefront/ ./
+# Copy and set up entrypoint script
+COPY storefront/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Set entrypoint to handle bun install and prisma generate
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+# Push schema to database and start dev server
+CMD ["sh", "-c", "bunx prisma db push && bun run start:dev"]

@@ -395,7 +395,7 @@ model Shop {
   id          String     @id @default(auto()) @map("_id") @db.ObjectId
   ownerId     String     @unique @db.ObjectId // Identity service user id (Seller)
   name        String
-  slug        String     @unique
+  slug        String     @unique  // URL with ID: example.com/shop/6964cb64fbeebaf2a1cfad2f URL with slug: example.com/shop/nike-vietnam
   description String?
   logo        String?
   coverImage  String?
@@ -501,7 +501,7 @@ model Storefront {
   id             String           @id @default(auto()) @map("_id") @db.ObjectId
   ownerId        String           @unique @db.ObjectId // Identity service user id (KOL)
   name           String
-  slug           String           @unique
+  slug           String           @unique  // URL with ID: example.com/shop/6964cb64fbeebaf2a1cfad2f URL with slug: example.com/shop/nike-vietnam
   description    String?
   logo           String?
   coverImage     String?
